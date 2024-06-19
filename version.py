@@ -1,5 +1,5 @@
-short_name = "godot"
-name = "Godot Engine"
+short_name = "uz_godot"
+name = "Team Dichroic Purplion Build of Godot Engine"
 major = 4
 minor = 3
 patch = 0
