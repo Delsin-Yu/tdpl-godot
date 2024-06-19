@@ -100,6 +100,7 @@
     <Compile Include="Core\Mathf.cs" />
     <Compile Include="Core\MathfEx.cs" />
     <Compile Include="Core\NativeInterop\CustomUnsafe.cs" />
+    <Compile Include="Core\NativeInterop\ExceptionHandler.cs" />
     <Compile Include="Core\NativeInterop\ExceptionUtils.cs" />
     <Compile Include="Core\NativeInterop\GodotDllImportResolver.cs" />
     <Compile Include="Core\NativeInterop\InteropUtils.cs" />
