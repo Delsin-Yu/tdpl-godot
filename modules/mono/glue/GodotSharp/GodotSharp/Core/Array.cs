@@ -65,7 +65,17 @@ namespace Godot.Collections
         /// </exception>
         /// <param name="array">The objects to put in the new array.</param>
         /// <returns>A new Godot Array.</returns>
-        public Array(Variant[] array)
+        public Array(Variant[] array) : this(array.AsSpan()) { }
+
+        /// <summary>
+        /// Constructs a new <see cref="Array"/> from the given objects.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">
+        /// The <paramref name="array"/> is <see langword="null"/>.
+        /// </exception>
+        /// <param name="array">The objects to put in the new array.</param>
+        /// <returns>A new Godot Array.</returns>
+        public Array(ReadOnlySpan<Variant> array)
         {
             if (array == null)
                 throw new ArgumentNullException(nameof(array));
@@ -1112,7 +1122,17 @@ namespace Godot.Collections
         /// </exception>
         /// <param name="array">The items to put in the new array.</param>
         /// <returns>A new Godot Array.</returns>
-        public Array(T[] array)
+        public Array(T[] array) : this(array.AsSpan()) { }
+
+        /// <summary>
+        /// Constructs a new <see cref="Array{T}"/> from the given items.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">
+        /// The <paramref name="array"/> is <see langword="null"/>.
+        /// </exception>
+        /// <param name="array">The items to put in the new array.</param>
+        /// <returns>A new Godot Array.</returns>
+        public Array(ReadOnlySpan<T> array)
         {
             if (array == null)
                 throw new ArgumentNullException(nameof(array));
