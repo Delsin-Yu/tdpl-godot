@@ -65,7 +65,7 @@ namespace GodotTools.Build
 
             while (!file.EofReached())
             {
-                string[] csvColumns = file.GetCsvLine();
+                ReadOnlySpan<string> csvColumns = file.GetCsvLine();
 
                 if (csvColumns.Length == 1 && string.IsNullOrEmpty(csvColumns[0]))
                     yield break;

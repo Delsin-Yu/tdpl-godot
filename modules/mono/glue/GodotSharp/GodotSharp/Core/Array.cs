@@ -88,7 +88,7 @@ namespace Godot.Collections
         /// The <paramref name="array"/> is <see langword="null"/>.
         /// </exception>
         /// <returns>A new Godot Array.</returns>
-        public Array(Span<StringName> array)
+        public Array(ReadOnlySpan<StringName> array)
         {
             if (array == null)
                 throw new ArgumentNullException(nameof(array));
@@ -111,7 +111,7 @@ namespace Godot.Collections
         /// The <paramref name="array"/> is <see langword="null"/>.
         /// </exception>
         /// <returns>A new Godot Array.</returns>
-        public Array(Span<NodePath> array)
+        public Array(ReadOnlySpan<NodePath> array)
         {
             if (array == null)
                 throw new ArgumentNullException(nameof(array));
@@ -134,7 +134,7 @@ namespace Godot.Collections
         /// The <paramref name="array"/> is <see langword="null"/>.
         /// </exception>
         /// <returns>A new Godot Array.</returns>
-        public Array(Span<Rid> array)
+        public Array(ReadOnlySpan<Rid> array)
         {
             if (array == null)
                 throw new ArgumentNullException(nameof(array));

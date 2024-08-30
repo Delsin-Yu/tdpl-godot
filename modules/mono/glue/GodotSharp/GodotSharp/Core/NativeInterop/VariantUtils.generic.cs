@@ -323,34 +323,34 @@ public partial class VariantUtils
             return UnsafeAsT(ConvertToString(variant));
 
         if (typeof(T) == typeof(byte[]))
-            return UnsafeAsT(ConvertAsPackedByteArrayToSystemArray(variant));
+            return UnsafeAsT(ConvertAsPackedByteArrayToSystemArray(variant).ToArray());
 
         if (typeof(T) == typeof(int[]))
-            return UnsafeAsT(ConvertAsPackedInt32ArrayToSystemArray(variant));
+            return UnsafeAsT(ConvertAsPackedInt32ArrayToSystemArray(variant).ToArray());
 
         if (typeof(T) == typeof(long[]))
-            return UnsafeAsT(ConvertAsPackedInt64ArrayToSystemArray(variant));
+            return UnsafeAsT(ConvertAsPackedInt64ArrayToSystemArray(variant).ToArray());
 
         if (typeof(T) == typeof(float[]))
-            return UnsafeAsT(ConvertAsPackedFloat32ArrayToSystemArray(variant));
+            return UnsafeAsT(ConvertAsPackedFloat32ArrayToSystemArray(variant).ToArray());
 
         if (typeof(T) == typeof(double[]))
-            return UnsafeAsT(ConvertAsPackedFloat64ArrayToSystemArray(variant));
+            return UnsafeAsT(ConvertAsPackedFloat64ArrayToSystemArray(variant).ToArray());
 
         if (typeof(T) == typeof(string[]))
-            return UnsafeAsT(ConvertAsPackedStringArrayToSystemArray(variant));
+            return UnsafeAsT(ConvertAsPackedStringArrayToSystemArray(variant).ToArray());
 
         if (typeof(T) == typeof(Vector2[]))
-            return UnsafeAsT(ConvertAsPackedVector2ArrayToSystemArray(variant));
+            return UnsafeAsT(ConvertAsPackedVector2ArrayToSystemArray(variant).ToArray());
 
         if (typeof(T) == typeof(Vector3[]))
-            return UnsafeAsT(ConvertAsPackedVector3ArrayToSystemArray(variant));
+            return UnsafeAsT(ConvertAsPackedVector3ArrayToSystemArray(variant).ToArray());
 
         if (typeof(T) == typeof(Vector4[]))
-            return UnsafeAsT(ConvertAsPackedVector4ArrayToSystemArray(variant));
+            return UnsafeAsT(ConvertAsPackedVector4ArrayToSystemArray(variant).ToArray());
 
         if (typeof(T) == typeof(Color[]))
-            return UnsafeAsT(ConvertAsPackedColorArrayToSystemArray(variant));
+            return UnsafeAsT(ConvertAsPackedColorArrayToSystemArray(variant).ToArray());
 
         if (typeof(T) == typeof(StringName[]))
             return UnsafeAsT(ConvertToSystemArrayOfStringName(variant));

@@ -178,76 +178,76 @@ namespace Godot.NativeInterop
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static godot_variant CreateFromPackedByteArray(Span<byte> from)
+        public static godot_variant CreateFromPackedByteArray(ReadOnlySpan<byte> from)
         {
             using var nativePackedArray = Marshaling.ConvertSystemArrayToNativePackedByteArray(from);
             return CreateFromPackedByteArray(nativePackedArray);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static godot_variant CreateFromPackedInt32Array(Span<int> from)
+        public static godot_variant CreateFromPackedInt32Array(ReadOnlySpan<int> from)
         {
             using var nativePackedArray = Marshaling.ConvertSystemArrayToNativePackedInt32Array(from);
             return CreateFromPackedInt32Array(nativePackedArray);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static godot_variant CreateFromPackedInt64Array(Span<long> from)
+        public static godot_variant CreateFromPackedInt64Array(ReadOnlySpan<long> from)
         {
             using var nativePackedArray = Marshaling.ConvertSystemArrayToNativePackedInt64Array(from);
             return CreateFromPackedInt64Array(nativePackedArray);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static godot_variant CreateFromPackedFloat32Array(Span<float> from)
+        public static godot_variant CreateFromPackedFloat32Array(ReadOnlySpan<float> from)
         {
             using var nativePackedArray = Marshaling.ConvertSystemArrayToNativePackedFloat32Array(from);
             return CreateFromPackedFloat32Array(nativePackedArray);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static godot_variant CreateFromPackedFloat64Array(Span<double> from)
+        public static godot_variant CreateFromPackedFloat64Array(ReadOnlySpan<double> from)
         {
             using var nativePackedArray = Marshaling.ConvertSystemArrayToNativePackedFloat64Array(from);
             return CreateFromPackedFloat64Array(nativePackedArray);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static godot_variant CreateFromPackedStringArray(Span<string> from)
+        public static godot_variant CreateFromPackedStringArray(ReadOnlySpan<string> from)
         {
             using var nativePackedArray = Marshaling.ConvertSystemArrayToNativePackedStringArray(from);
             return CreateFromPackedStringArray(nativePackedArray);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static godot_variant CreateFromPackedVector2Array(Span<Vector2> from)
+        public static godot_variant CreateFromPackedVector2Array(ReadOnlySpan<Vector2> from)
         {
             using var nativePackedArray = Marshaling.ConvertSystemArrayToNativePackedVector2Array(from);
             return CreateFromPackedVector2Array(nativePackedArray);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static godot_variant CreateFromPackedVector3Array(Span<Vector3> from)
+        public static godot_variant CreateFromPackedVector3Array(ReadOnlySpan<Vector3> from)
         {
             using var nativePackedArray = Marshaling.ConvertSystemArrayToNativePackedVector3Array(from);
             return CreateFromPackedVector3Array(nativePackedArray);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static godot_variant CreateFromPackedVector4Array(Span<Vector4> from)
+        public static godot_variant CreateFromPackedVector4Array(ReadOnlySpan<Vector4> from)
         {
             using var nativePackedArray = Marshaling.ConvertSystemArrayToNativePackedVector4Array(from);
             return CreateFromPackedVector4Array(nativePackedArray);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static godot_variant CreateFromPackedColorArray(Span<Color> from)
+        public static godot_variant CreateFromPackedColorArray(ReadOnlySpan<Color> from)
         {
             using var nativePackedArray = Marshaling.ConvertSystemArrayToNativePackedColorArray(from);
             return CreateFromPackedColorArray(nativePackedArray);
         }
 
-        public static godot_variant CreateFromSystemArrayOfStringName(Span<StringName> from)
+        public static godot_variant CreateFromSystemArrayOfStringName(ReadOnlySpan<StringName> from)
         {
             if (from == null)
                 return default;
@@ -255,7 +255,7 @@ namespace Godot.NativeInterop
             return CreateFromArray((godot_array)fromGodot.NativeValue);
         }
 
-        public static godot_variant CreateFromSystemArrayOfNodePath(Span<NodePath> from)
+        public static godot_variant CreateFromSystemArrayOfNodePath(ReadOnlySpan<NodePath> from)
         {
             if (from == null)
                 return default;
@@ -263,7 +263,7 @@ namespace Godot.NativeInterop
             return CreateFromArray((godot_array)fromGodot.NativeValue);
         }
 
-        public static godot_variant CreateFromSystemArrayOfRid(Span<Rid> from)
+        public static godot_variant CreateFromSystemArrayOfRid(ReadOnlySpan<Rid> from)
         {
             if (from == null)
                 return default;
@@ -570,61 +570,61 @@ namespace Godot.NativeInterop
         public static Dictionary<TKey, TValue> ConvertToDictionary<[MustBeVariant] TKey, [MustBeVariant] TValue>(in godot_variant p_var)
             => Dictionary<TKey, TValue>.CreateTakingOwnershipOfDisposableValue(ConvertToNativeDictionary(p_var));
 
-        public static byte[] ConvertAsPackedByteArrayToSystemArray(in godot_variant p_var)
+        public static ReadOnlySpan<byte> ConvertAsPackedByteArrayToSystemArray(in godot_variant p_var)
         {
             using var packedArray = NativeFuncs.godotsharp_variant_as_packed_byte_array(p_var);
             return Marshaling.ConvertNativePackedByteArrayToSystemArray(packedArray);
         }
 
-        public static int[] ConvertAsPackedInt32ArrayToSystemArray(in godot_variant p_var)
+        public static ReadOnlySpan<int> ConvertAsPackedInt32ArrayToSystemArray(in godot_variant p_var)
         {
             using var packedArray = NativeFuncs.godotsharp_variant_as_packed_int32_array(p_var);
             return Marshaling.ConvertNativePackedInt32ArrayToSystemArray(packedArray);
         }
 
-        public static long[] ConvertAsPackedInt64ArrayToSystemArray(in godot_variant p_var)
+        public static ReadOnlySpan<long> ConvertAsPackedInt64ArrayToSystemArray(in godot_variant p_var)
         {
             using var packedArray = NativeFuncs.godotsharp_variant_as_packed_int64_array(p_var);
             return Marshaling.ConvertNativePackedInt64ArrayToSystemArray(packedArray);
         }
 
-        public static float[] ConvertAsPackedFloat32ArrayToSystemArray(in godot_variant p_var)
+        public static ReadOnlySpan<float> ConvertAsPackedFloat32ArrayToSystemArray(in godot_variant p_var)
         {
             using var packedArray = NativeFuncs.godotsharp_variant_as_packed_float32_array(p_var);
             return Marshaling.ConvertNativePackedFloat32ArrayToSystemArray(packedArray);
         }
 
-        public static double[] ConvertAsPackedFloat64ArrayToSystemArray(in godot_variant p_var)
+        public static ReadOnlySpan<double> ConvertAsPackedFloat64ArrayToSystemArray(in godot_variant p_var)
         {
             using var packedArray = NativeFuncs.godotsharp_variant_as_packed_float64_array(p_var);
             return Marshaling.ConvertNativePackedFloat64ArrayToSystemArray(packedArray);
         }
 
-        public static string[] ConvertAsPackedStringArrayToSystemArray(in godot_variant p_var)
+        public static ReadOnlySpan<string> ConvertAsPackedStringArrayToSystemArray(in godot_variant p_var)
         {
             using var packedArray = NativeFuncs.godotsharp_variant_as_packed_string_array(p_var);
             return Marshaling.ConvertNativePackedStringArrayToSystemArray(packedArray);
         }
 
-        public static Vector2[] ConvertAsPackedVector2ArrayToSystemArray(in godot_variant p_var)
+        public static ReadOnlySpan<Vector2> ConvertAsPackedVector2ArrayToSystemArray(in godot_variant p_var)
         {
             using var packedArray = NativeFuncs.godotsharp_variant_as_packed_vector2_array(p_var);
             return Marshaling.ConvertNativePackedVector2ArrayToSystemArray(packedArray);
         }
 
-        public static Vector3[] ConvertAsPackedVector3ArrayToSystemArray(in godot_variant p_var)
+        public static ReadOnlySpan<Vector3> ConvertAsPackedVector3ArrayToSystemArray(in godot_variant p_var)
         {
             using var packedArray = NativeFuncs.godotsharp_variant_as_packed_vector3_array(p_var);
             return Marshaling.ConvertNativePackedVector3ArrayToSystemArray(packedArray);
         }
 
-        public static Vector4[] ConvertAsPackedVector4ArrayToSystemArray(in godot_variant p_var)
+        public static ReadOnlySpan<Vector4> ConvertAsPackedVector4ArrayToSystemArray(in godot_variant p_var)
         {
             using var packedArray = NativeFuncs.godotsharp_variant_as_packed_vector4_array(p_var);
             return Marshaling.ConvertNativePackedVector4ArrayToSystemArray(packedArray);
         }
 
-        public static Color[] ConvertAsPackedColorArrayToSystemArray(in godot_variant p_var)
+        public static ReadOnlySpan<Color> ConvertAsPackedColorArrayToSystemArray(in godot_variant p_var)
         {
             using var packedArray = NativeFuncs.godotsharp_variant_as_packed_color_array(p_var);
             return Marshaling.ConvertNativePackedColorArrayToSystemArray(packedArray);

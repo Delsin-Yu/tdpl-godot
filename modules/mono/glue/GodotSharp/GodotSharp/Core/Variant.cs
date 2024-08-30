@@ -290,43 +290,43 @@ public partial struct Variant : IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] AsByteArray() =>
-        VariantUtils.ConvertAsPackedByteArrayToSystemArray((godot_variant)NativeVar);
+        VariantUtils.ConvertAsPackedByteArrayToSystemArray((godot_variant)NativeVar).ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int[] AsInt32Array() =>
-        VariantUtils.ConvertAsPackedInt32ArrayToSystemArray((godot_variant)NativeVar);
+        VariantUtils.ConvertAsPackedInt32ArrayToSystemArray((godot_variant)NativeVar).ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public long[] AsInt64Array() =>
-        VariantUtils.ConvertAsPackedInt64ArrayToSystemArray((godot_variant)NativeVar);
+        VariantUtils.ConvertAsPackedInt64ArrayToSystemArray((godot_variant)NativeVar).ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public float[] AsFloat32Array() =>
-        VariantUtils.ConvertAsPackedFloat32ArrayToSystemArray((godot_variant)NativeVar);
+        VariantUtils.ConvertAsPackedFloat32ArrayToSystemArray((godot_variant)NativeVar).ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double[] AsFloat64Array() =>
-        VariantUtils.ConvertAsPackedFloat64ArrayToSystemArray((godot_variant)NativeVar);
+        VariantUtils.ConvertAsPackedFloat64ArrayToSystemArray((godot_variant)NativeVar).ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string[] AsStringArray() =>
-        VariantUtils.ConvertAsPackedStringArrayToSystemArray((godot_variant)NativeVar);
+        VariantUtils.ConvertAsPackedStringArrayToSystemArray((godot_variant)NativeVar).ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector2[] AsVector2Array() =>
-        VariantUtils.ConvertAsPackedVector2ArrayToSystemArray((godot_variant)NativeVar);
+        VariantUtils.ConvertAsPackedVector2ArrayToSystemArray((godot_variant)NativeVar).ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3[] AsVector3Array() =>
-        VariantUtils.ConvertAsPackedVector3ArrayToSystemArray((godot_variant)NativeVar);
+        VariantUtils.ConvertAsPackedVector3ArrayToSystemArray((godot_variant)NativeVar).ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector4[] AsVector4Array() =>
-        VariantUtils.ConvertAsPackedVector4ArrayToSystemArray((godot_variant)NativeVar);
+        VariantUtils.ConvertAsPackedVector4ArrayToSystemArray((godot_variant)NativeVar).ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Color[] AsColorArray() =>
-        VariantUtils.ConvertAsPackedColorArrayToSystemArray((godot_variant)NativeVar);
+        VariantUtils.ConvertAsPackedColorArrayToSystemArray((godot_variant)NativeVar).ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T[] AsGodotObjectArray<T>()

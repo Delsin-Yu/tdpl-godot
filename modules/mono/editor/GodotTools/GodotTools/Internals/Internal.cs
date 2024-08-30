@@ -75,7 +75,7 @@ namespace GodotTools.Internals
             using godot_string scriptFileIn = Marshaling.ConvertStringToNative(scriptFile);
             godot_icall_Internal_CodeCompletionRequest((int)kind, scriptFileIn, out godot_packed_string_array res);
             using (res)
-                return Marshaling.ConvertNativePackedStringArrayToSystemArray(res);
+                return Marshaling.ConvertNativePackedStringArrayToSystemArray(res).ToArray();
         }
 
         #region Internal

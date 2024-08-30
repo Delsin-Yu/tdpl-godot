@@ -80,7 +80,7 @@ partial class Geometry3D
 {
     /// <inheritdoc cref="SegmentIntersectsConvex(Vector3, Vector3, Godot.Collections.Array{Plane})"/>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Vector3[] SegmentIntersectsConvex(Vector3 from, Vector3 to, Godot.Collections.Array planes)
+    public static ReadOnlySpan<Vector3> SegmentIntersectsConvex(Vector3 from, Vector3 to, Godot.Collections.Array planes)
     {
         return SegmentIntersectsConvex(from, to, new Godot.Collections.Array<Plane>(planes));
     }
@@ -170,9 +170,9 @@ partial class Node3D
 
 partial class RenderingDevice
 {
-    /// <inheritdoc cref="DrawListBegin(Rid, InitialAction, FinalAction, InitialAction, FinalAction, Color[], float, uint, Nullable{Rect2}, Godot.Collections.Array{Rid})"/>
+    /// <inheritdoc cref="DrawListBegin(Godot.Rid,Godot.RenderingDevice.InitialAction,Godot.RenderingDevice.FinalAction,Godot.RenderingDevice.InitialAction,Godot.RenderingDevice.FinalAction,System.ReadOnlySpan{Godot.Color},float,uint,System.Nullable{Godot.Rect2},Godot.Collections.Array{Rid})"/>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public long DrawListBegin(Rid framebuffer, InitialAction initialColorAction, FinalAction finalColorAction, InitialAction initialDepthAction, FinalAction finalDepthAction, Color[] clearColorValues, float clearDepth, uint clearStencil, Nullable<Rect2> region, Godot.Collections.Array storageTextures)
+    public long DrawListBegin(Rid framebuffer, InitialAction initialColorAction, FinalAction finalColorAction, InitialAction initialDepthAction, FinalAction finalDepthAction, ReadOnlySpan<Color> clearColorValues, float clearDepth, uint clearStencil, Nullable<Rect2> region, Godot.Collections.Array storageTextures)
     {
         return DrawListBegin(framebuffer, initialColorAction, finalColorAction, initialDepthAction, finalDepthAction, clearColorValues, clearDepth, clearStencil, region, new Godot.Collections.Array<Rid>(storageTextures));
     }
@@ -187,7 +187,7 @@ partial class RichTextLabel
         PushList(level, type, capitalize, bullet: "•");
     }
 
-    /// <inheritdoc cref="PushParagraph(HorizontalAlignment, TextDirection, string, TextServer.StructuredTextParser, TextServer.JustificationFlag, float[])"/>
+    /// <inheritdoc cref="PushParagraph(Godot.HorizontalAlignment,Godot.Control.TextDirection,string,Godot.TextServer.StructuredTextParser,Godot.TextServer.JustificationFlag,ReadOnlySpan{float})"/>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void PushParagraph(HorizontalAlignment alignment, TextDirection baseDirection, string language, TextServer.StructuredTextParser stParser)
     {
@@ -197,9 +197,9 @@ partial class RichTextLabel
 
 partial class SurfaceTool
 {
-    /// <inheritdoc cref="AddTriangleFan(Vector3[], Vector2[], Color[], Vector2[], Vector3[], Godot.Collections.Array{Plane})"/>
+    /// <inheritdoc cref="AddTriangleFan(System.ReadOnlySpan{Godot.Vector3},System.ReadOnlySpan{Godot.Vector2},System.ReadOnlySpan{Godot.Color},System.ReadOnlySpan{Godot.Vector2},System.ReadOnlySpan{Godot.Vector3},Godot.Collections.Array)"/>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AddTriangleFan(Vector3[] vertices, Vector2[] uvs, Color[] colors, Vector2[] uv2S, Vector3[] normals, Godot.Collections.Array tangents)
+    public void AddTriangleFan(ReadOnlySpan<Vector3> vertices, ReadOnlySpan<Vector2> uvs, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uv2S, ReadOnlySpan<Vector3> normals, Godot.Collections.Array tangents)
     {
         AddTriangleFan(vertices, uvs, colors, uv2S, normals, new Godot.Collections.Array<Plane>(tangents));
     }

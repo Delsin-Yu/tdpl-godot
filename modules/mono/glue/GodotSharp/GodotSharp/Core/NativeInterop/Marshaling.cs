@@ -382,19 +382,15 @@ namespace Godot.NativeInterop
 
         // PackedByteArray
 
-        public static unsafe byte[] ConvertNativePackedByteArrayToSystemArray(in godot_packed_byte_array p_array)
+        public static unsafe ReadOnlySpan<byte> ConvertNativePackedByteArrayToSystemArray(in godot_packed_byte_array p_array)
         {
             byte* buffer = p_array.Buffer;
             int size = p_array.Size;
-            if (size == 0)
-                return Array.Empty<byte>();
-            var array = new byte[size];
-            fixed (byte* dest = array)
-                Buffer.MemoryCopy(buffer, dest, size, size);
-            return array;
+            if (size == 0) return null;
+            return new ReadOnlySpan<byte>(buffer, size);
         }
 
-        public static unsafe godot_packed_byte_array ConvertSystemArrayToNativePackedByteArray(Span<byte> p_array)
+        public static unsafe godot_packed_byte_array ConvertSystemArrayToNativePackedByteArray(ReadOnlySpan<byte> p_array)
         {
             if (p_array.IsEmpty)
                 return new godot_packed_byte_array();
@@ -404,20 +400,15 @@ namespace Godot.NativeInterop
 
         // PackedInt32Array
 
-        public static unsafe int[] ConvertNativePackedInt32ArrayToSystemArray(godot_packed_int32_array p_array)
+        public static unsafe ReadOnlySpan<int> ConvertNativePackedInt32ArrayToSystemArray(godot_packed_int32_array p_array)
         {
             int* buffer = p_array.Buffer;
             int size = p_array.Size;
-            if (size == 0)
-                return Array.Empty<int>();
-            int sizeInBytes = size * sizeof(int);
-            var array = new int[size];
-            fixed (int* dest = array)
-                Buffer.MemoryCopy(buffer, dest, sizeInBytes, sizeInBytes);
-            return array;
+            if (size == 0) return null;
+            return new ReadOnlySpan<int>(buffer, size);
         }
 
-        public static unsafe godot_packed_int32_array ConvertSystemArrayToNativePackedInt32Array(Span<int> p_array)
+        public static unsafe godot_packed_int32_array ConvertSystemArrayToNativePackedInt32Array(ReadOnlySpan<int> p_array)
         {
             if (p_array.IsEmpty)
                 return new godot_packed_int32_array();
@@ -427,20 +418,15 @@ namespace Godot.NativeInterop
 
         // PackedInt64Array
 
-        public static unsafe long[] ConvertNativePackedInt64ArrayToSystemArray(godot_packed_int64_array p_array)
+        public static unsafe ReadOnlySpan<long> ConvertNativePackedInt64ArrayToSystemArray(godot_packed_int64_array p_array)
         {
             long* buffer = p_array.Buffer;
             int size = p_array.Size;
-            if (size == 0)
-                return Array.Empty<long>();
-            int sizeInBytes = size * sizeof(long);
-            var array = new long[size];
-            fixed (long* dest = array)
-                Buffer.MemoryCopy(buffer, dest, sizeInBytes, sizeInBytes);
-            return array;
+            if (size == 0) return null;
+            return new ReadOnlySpan<long>(buffer, size);
         }
 
-        public static unsafe godot_packed_int64_array ConvertSystemArrayToNativePackedInt64Array(Span<long> p_array)
+        public static unsafe godot_packed_int64_array ConvertSystemArrayToNativePackedInt64Array(ReadOnlySpan<long> p_array)
         {
             if (p_array.IsEmpty)
                 return new godot_packed_int64_array();
@@ -450,21 +436,16 @@ namespace Godot.NativeInterop
 
         // PackedFloat32Array
 
-        public static unsafe float[] ConvertNativePackedFloat32ArrayToSystemArray(godot_packed_float32_array p_array)
+        public static unsafe ReadOnlySpan<float> ConvertNativePackedFloat32ArrayToSystemArray(godot_packed_float32_array p_array)
         {
             float* buffer = p_array.Buffer;
             int size = p_array.Size;
-            if (size == 0)
-                return Array.Empty<float>();
-            int sizeInBytes = size * sizeof(float);
-            var array = new float[size];
-            fixed (float* dest = array)
-                Buffer.MemoryCopy(buffer, dest, sizeInBytes, sizeInBytes);
-            return array;
+            if (size == 0) return null;
+            return new ReadOnlySpan<float>(buffer, size);
         }
 
         public static unsafe godot_packed_float32_array ConvertSystemArrayToNativePackedFloat32Array(
-            Span<float> p_array)
+            ReadOnlySpan<float> p_array)
         {
             if (p_array.IsEmpty)
                 return new godot_packed_float32_array();
@@ -474,21 +455,16 @@ namespace Godot.NativeInterop
 
         // PackedFloat64Array
 
-        public static unsafe double[] ConvertNativePackedFloat64ArrayToSystemArray(godot_packed_float64_array p_array)
+        public static unsafe ReadOnlySpan<double> ConvertNativePackedFloat64ArrayToSystemArray(godot_packed_float64_array p_array)
         {
             double* buffer = p_array.Buffer;
             int size = p_array.Size;
-            if (size == 0)
-                return Array.Empty<double>();
-            int sizeInBytes = size * sizeof(double);
-            var array = new double[size];
-            fixed (double* dest = array)
-                Buffer.MemoryCopy(buffer, dest, sizeInBytes, sizeInBytes);
-            return array;
+            if (size == 0) return null;
+            return new ReadOnlySpan<double>(buffer, size);
         }
 
         public static unsafe godot_packed_float64_array ConvertSystemArrayToNativePackedFloat64Array(
-            Span<double> p_array)
+            ReadOnlySpan<double> p_array)
         {
             if (p_array.IsEmpty)
                 return new godot_packed_float64_array();
@@ -498,19 +474,18 @@ namespace Godot.NativeInterop
 
         // PackedStringArray
 
-        public static unsafe string[] ConvertNativePackedStringArrayToSystemArray(godot_packed_string_array p_array)
+        public static unsafe ReadOnlySpan<string> ConvertNativePackedStringArrayToSystemArray(godot_packed_string_array p_array)
         {
             godot_string* buffer = p_array.Buffer;
             int size = p_array.Size;
-            if (size == 0)
-                return Array.Empty<string>();
+            if (size == 0) return null;
             var array = new string[size];
             for (int i = 0; i < size; i++)
                 array[i] = ConvertStringToManaged(buffer[i]);
             return array;
         }
 
-        public static godot_packed_string_array ConvertSystemArrayToNativePackedStringArray(Span<string> p_array)
+        public static godot_packed_string_array ConvertSystemArrayToNativePackedStringArray(ReadOnlySpan<string> p_array)
         {
             godot_packed_string_array dest = new godot_packed_string_array();
 
@@ -531,21 +506,16 @@ namespace Godot.NativeInterop
 
         // PackedVector2Array
 
-        public static unsafe Vector2[] ConvertNativePackedVector2ArrayToSystemArray(godot_packed_vector2_array p_array)
+        public static unsafe ReadOnlySpan<Vector2> ConvertNativePackedVector2ArrayToSystemArray(godot_packed_vector2_array p_array)
         {
             Vector2* buffer = p_array.Buffer;
             int size = p_array.Size;
-            if (size == 0)
-                return Array.Empty<Vector2>();
-            int sizeInBytes = size * sizeof(Vector2);
-            var array = new Vector2[size];
-            fixed (Vector2* dest = array)
-                Buffer.MemoryCopy(buffer, dest, sizeInBytes, sizeInBytes);
-            return array;
+            if (size == 0) return null;
+            return new ReadOnlySpan<Vector2>(buffer, size);
         }
 
         public static unsafe godot_packed_vector2_array ConvertSystemArrayToNativePackedVector2Array(
-            Span<Vector2> p_array)
+            ReadOnlySpan<Vector2> p_array)
         {
             if (p_array.IsEmpty)
                 return new godot_packed_vector2_array();
@@ -555,21 +525,16 @@ namespace Godot.NativeInterop
 
         // PackedVector3Array
 
-        public static unsafe Vector3[] ConvertNativePackedVector3ArrayToSystemArray(godot_packed_vector3_array p_array)
+        public static unsafe ReadOnlySpan<Vector3> ConvertNativePackedVector3ArrayToSystemArray(godot_packed_vector3_array p_array)
         {
             Vector3* buffer = p_array.Buffer;
             int size = p_array.Size;
-            if (size == 0)
-                return Array.Empty<Vector3>();
-            int sizeInBytes = size * sizeof(Vector3);
-            var array = new Vector3[size];
-            fixed (Vector3* dest = array)
-                Buffer.MemoryCopy(buffer, dest, sizeInBytes, sizeInBytes);
-            return array;
+            if (size == 0) return null;
+            return new ReadOnlySpan<Vector3>(buffer, size);
         }
 
         public static unsafe godot_packed_vector3_array ConvertSystemArrayToNativePackedVector3Array(
-            Span<Vector3> p_array)
+            ReadOnlySpan<Vector3> p_array)
         {
             if (p_array.IsEmpty)
                 return new godot_packed_vector3_array();
@@ -579,21 +544,16 @@ namespace Godot.NativeInterop
 
         // PackedVector4Array
 
-        public static unsafe Vector4[] ConvertNativePackedVector4ArrayToSystemArray(godot_packed_vector4_array p_array)
+        public static unsafe ReadOnlySpan<Vector4> ConvertNativePackedVector4ArrayToSystemArray(godot_packed_vector4_array p_array)
         {
             Vector4* buffer = p_array.Buffer;
             int size = p_array.Size;
-            if (size == 0)
-                return Array.Empty<Vector4>();
-            int sizeInBytes = size * sizeof(Vector4);
-            var array = new Vector4[size];
-            fixed (Vector4* dest = array)
-                Buffer.MemoryCopy(buffer, dest, sizeInBytes, sizeInBytes);
-            return array;
+            if (size == 0) return null;
+            return new ReadOnlySpan<Vector4>(buffer, size);
         }
 
         public static unsafe godot_packed_vector4_array ConvertSystemArrayToNativePackedVector4Array(
-            Span<Vector4> p_array)
+            ReadOnlySpan<Vector4> p_array)
         {
             if (p_array.IsEmpty)
                 return new godot_packed_vector4_array();
@@ -603,20 +563,15 @@ namespace Godot.NativeInterop
 
         // PackedColorArray
 
-        public static unsafe Color[] ConvertNativePackedColorArrayToSystemArray(godot_packed_color_array p_array)
+        public static unsafe ReadOnlySpan<Color> ConvertNativePackedColorArrayToSystemArray(godot_packed_color_array p_array)
         {
             Color* buffer = p_array.Buffer;
             int size = p_array.Size;
-            if (size == 0)
-                return Array.Empty<Color>();
-            int sizeInBytes = size * sizeof(Color);
-            var array = new Color[size];
-            fixed (Color* dest = array)
-                Buffer.MemoryCopy(buffer, dest, sizeInBytes, sizeInBytes);
-            return array;
+            if (size == 0) return null;
+            return new ReadOnlySpan<Color>(buffer, size);
         }
 
-        public static unsafe godot_packed_color_array ConvertSystemArrayToNativePackedColorArray(Span<Color> p_array)
+        public static unsafe godot_packed_color_array ConvertSystemArrayToNativePackedColorArray(ReadOnlySpan<Color> p_array)
         {
             if (p_array.IsEmpty)
                 return new godot_packed_color_array();

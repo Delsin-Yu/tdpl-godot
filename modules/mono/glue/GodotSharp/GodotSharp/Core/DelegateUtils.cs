@@ -214,7 +214,7 @@ namespace Godot
                                 if (variantType == Variant.Type.Nil)
                                     return false;
 
-                                static byte[] VarToBytes(in godot_variant var)
+                                static ReadOnlySpan<byte> VarToBytes(in godot_variant var)
                                 {
                                     NativeFuncs.godotsharp_var_to_bytes(var, godot_bool.True, out var varBytes);
                                     using (varBytes)
@@ -225,7 +225,7 @@ namespace Godot
 
                                 var fieldValue = field.GetValue(target);
                                 using var fieldValueVariant = RuntimeTypeConversionHelper.ConvertToVariant(fieldValue);
-                                byte[] valueBuffer = VarToBytes(fieldValueVariant);
+                                ReadOnlySpan<byte> valueBuffer = VarToBytes(fieldValueVariant);
                                 writer.Write(valueBuffer.Length);
                                 writer.Write(valueBuffer);
                             }

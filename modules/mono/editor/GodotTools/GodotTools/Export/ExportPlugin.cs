@@ -27,7 +27,7 @@ namespace GodotTools.Export
             return File.Exists(GodotSharpDirs.ProjectSlnPath);
         }
 
-        public override string[] _GetExportFeatures(EditorExportPlatform platform, bool debug)
+        public override ReadOnlySpan<string> _GetExportFeatures(EditorExportPlatform platform, bool debug)
         {
             if (!ProjectContainsDotNet())
                 return Array.Empty<string>();
@@ -78,7 +78,7 @@ namespace GodotTools.Export
         private string? _maybeLastExportError;
 
         // With this method we can override how a file is exported in the PCK
-        public override void _ExportFile(string path, string type, string[] features)
+        public override void _ExportFile(string path, string type, ReadOnlySpan<string> features)
         {
             base._ExportFile(path, type, features);
 
@@ -114,7 +114,7 @@ namespace GodotTools.Export
             }
         }
 
-        public override void _ExportBegin(string[] features, bool isDebug, string path, uint flags)
+        public override void _ExportBegin(ReadOnlySpan<string> features, bool isDebug, string path, uint flags)
         {
             base._ExportBegin(features, isDebug, path, flags);
 
@@ -137,7 +137,7 @@ namespace GodotTools.Export
             }
         }
 
-        private void _ExportBeginImpl(string[] features, bool isDebug, string path, long flags)
+        private void _ExportBeginImpl(ReadOnlySpan<string> features, bool isDebug, string path, long flags)
         {
             _ = flags; // Unused.
 
@@ -458,7 +458,7 @@ namespace GodotTools.Export
             }
         }
 
-        private static bool DeterminePlatformFromFeatures(IEnumerable<string> features, [NotNullWhen(true)] out string? platform)
+        private static bool DeterminePlatformFromFeatures(ReadOnlySpan<string> features, [NotNullWhen(true)] out string? platform)
         {
             foreach (var feature in features)
             {

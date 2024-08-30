@@ -144,6 +144,7 @@ void BindingsGenerator::TypeInterface::postsetup_enum_type(BindingsGenerator::Ty
 	// any of the changes done here to the 'uint32_t' type interface as well.
 
 	r_enum_itype.cs_type = r_enum_itype.proxy_name;
+	r_enum_itype.cs_type_generic_alternative = r_enum_itype.proxy_name;
 	r_enum_itype.cs_in_expr = "(int)%0";
 	r_enum_itype.cs_out = "%5return (%2)%0(%1);";
 
@@ -3400,7 +3401,7 @@ const String BindingsGenerator::_get_generic_type_parameters(const TypeInterface
 							" Core API cannot have dependencies on the editor API.");
 		}
 
-		params += param_itype->cs_type;
+		params += param_itype->cs_type_generic_alternative;
 		if (i < p_generic_type_parameters.size() - 1) {
 			params += ", ";
 		}
@@ -3632,6 +3633,7 @@ bool BindingsGenerator::_populate_object_type_interfaces() {
 		itype.c_out += itype.is_ref_counted ? "(%1.Reference);\n" : "(%1);\n";
 
 		itype.cs_type = itype.proxy_name;
+		itype.cs_type_generic_alternative = itype.proxy_name;
 
 		itype.cs_in_expr = "GodotObject." CS_STATIC_METHOD_GETINSTANCE "(%0)";
 
@@ -4252,8 +4254,7 @@ bool BindingsGenerator::_arg_default_value_from_variant(const Variant &p_val, Ar
 		case Variant::PACKED_VECTOR3_ARRAY:
 		case Variant::PACKED_VECTOR4_ARRAY:
 		case Variant::PACKED_COLOR_ARRAY:
-			r_iarg.default_argument = "Array.Empty<%s>()";
-			r_iarg.def_param_mode = ArgumentInterface::NULLABLE_REF;
+			r_iarg.default_argument = "default";
 			break;
 		case Variant::TRANSFORM2D: {
 			Transform2D transform = p_val.operator Transform2D();
@@ -4413,6 +4414,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 		itype.cname = itype.name;
 		itype.proxy_name = "float";
 		itype.cs_type = itype.proxy_name;
+		itype.cs_type_generic_alternative = itype.proxy_name;
 		{
 			// The expected type for 'float' in ptrcall is 'double'
 			itype.c_in = "%5%0 %1_in = %1;\n";
@@ -4431,6 +4433,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 		itype.cname = itype.name;
 		itype.proxy_name = "double";
 		itype.cs_type = itype.proxy_name;
+		itype.cs_type_generic_alternative = itype.proxy_name;
 		itype.c_type = "double";
 		itype.c_arg_in = "&%s";
 		itype.c_type_in = itype.proxy_name;
@@ -4445,6 +4448,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 	itype.cname = itype.name;
 	itype.proxy_name = "string";
 	itype.cs_type = itype.proxy_name;
+	itype.cs_type_generic_alternative = itype.proxy_name;
 	itype.c_in = "%5using %0 %1_in = " C_METHOD_MONOSTR_TO_GODOT "(%1);\n";
 	itype.c_out = "%5return " C_METHOD_MONOSTR_FROM_GODOT "(%1);\n";
 	itype.c_arg_in = "&%s_in";
@@ -4461,6 +4465,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 	itype.cname = itype.name;
 	itype.proxy_name = "StringName";
 	itype.cs_type = itype.proxy_name;
+	itype.cs_type_generic_alternative = itype.proxy_name;
 	itype.cs_in_expr = "(%1)(%0?.NativeValue ?? default)";
 	// Cannot pass null StringName to ptrcall
 	itype.c_out = "%5return %0.CreateTakingOwnershipOfDisposableValue(%1);\n";
@@ -4479,6 +4484,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 	itype.cname = itype.name;
 	itype.proxy_name = "NodePath";
 	itype.cs_type = itype.proxy_name;
+	itype.cs_type_generic_alternative = itype.proxy_name;
 	itype.cs_in_expr = "(%1)(%0?.NativeValue ?? default)";
 	// Cannot pass null NodePath to ptrcall
 	itype.c_out = "%5return %0.CreateTakingOwnershipOfDisposableValue(%1);\n";
@@ -4496,6 +4502,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 	itype.cname = itype.name;
 	itype.proxy_name = "Rid";
 	itype.cs_type = itype.proxy_name;
+	itype.cs_type_generic_alternative = itype.proxy_name;
 	itype.c_arg_in = "&%s";
 	itype.c_type = itype.cs_type;
 	itype.c_type_in = itype.c_type;
@@ -4508,6 +4515,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 	itype.cname = itype.name;
 	itype.proxy_name = "Variant";
 	itype.cs_type = itype.proxy_name;
+	itype.cs_type_generic_alternative = itype.proxy_name;
 	itype.c_in = "%5%0 %1_in = (%0)%1.NativeVar;\n";
 	itype.c_out = "%5return Variant.CreateTakingOwnershipOfDisposableValue(%1);\n";
 	itype.c_arg_in = "&%s_in";
@@ -4536,6 +4544,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 	itype.cname = itype.name;
 	itype.proxy_name = "Signal";
 	itype.cs_type = itype.proxy_name;
+	itype.cs_type_generic_alternative = itype.proxy_name;
 	itype.cs_in_expr = "%0";
 	itype.c_in = "%5using %0 %1_in = " C_METHOD_MANAGED_TO_SIGNAL "(in %1);\n";
 	itype.c_out = "%5return " C_METHOD_MANAGED_FROM_SIGNAL "(in %1);\n";
@@ -4552,6 +4561,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 	itype.cname = itype.name;
 	itype.proxy_name = "Variant[]";
 	itype.cs_type = "params Variant[]";
+	itype.cs_type_generic_alternative = "params Variant[]";
 	itype.cs_in_expr = "%0 ?? Array.Empty<Variant>()";
 	// c_type, c_in and c_arg_in are hard-coded in the generator.
 	// c_out and c_type_out are not applicable to VarArg.
@@ -4559,38 +4569,41 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 	itype.c_type_in = "Variant[]";
 	builtin_types.insert(itype.cname, itype);
 
-#define INSERT_ARRAY_FULL(m_name, m_type, m_managed_type, m_proxy_t)                \
-	{                                                                               \
-		itype = TypeInterface();                                                    \
-		itype.name = #m_name;                                                       \
-		itype.cname = itype.name;                                                   \
-		itype.proxy_name = #m_proxy_t "[]";                                         \
-		itype.cs_type = itype.proxy_name;                                           \
-		itype.c_in = "%5using %0 %1_in = " C_METHOD_MONOARRAY_TO(m_type) "(%1);\n"; \
-		itype.c_out = "%5return " C_METHOD_MONOARRAY_FROM(m_type) "(%1);\n";        \
-		itype.c_arg_in = "&%s_in";                                                  \
-		itype.c_type = #m_managed_type;                                             \
-		itype.c_type_in = itype.proxy_name;                                         \
-		itype.c_type_out = itype.proxy_name;                                        \
-		itype.c_type_is_disposable_struct = true;                                   \
-		builtin_types.insert(itype.name, itype);                                    \
+#define INSERT_ARRAY_FULL(m_name, m_type, m_managed_type, m_proxy_t, m_proxy_t_capitalized)       \
+	{                                                                                             \
+		itype = TypeInterface();                                                                  \
+		itype.name = #m_name;                                                                     \
+		itype.cname = itype.name;                                                                 \
+		itype.proxy_name = "ReadOnlySpan<" #m_proxy_t ">";                                        \
+		itype.cs_type = itype.proxy_name;                                                         \
+		itype.cs_type_generic_alternative = #m_proxy_t "[]";                                      \
+		itype.c_in = "%5using %0 %1_in = " C_METHOD_MONOARRAY_TO(m_type) "(%1);\n";               \
+		itype.c_out = "%5return " C_METHOD_MONOARRAY_FROM(m_type) "(%1);\n";                      \
+		itype.c_arg_in = "&%s_in";                                                                \
+		itype.c_type = #m_managed_type;                                                           \
+		itype.c_type_in = itype.proxy_name;                                                       \
+		itype.c_type_out = itype.proxy_name;                                                      \
+		itype.c_type_is_disposable_struct = true;                                                 \
+		itype.cs_managed_to_variant = "VariantUtils.CreateFromSpan(%0)";                          \
+		itype.cs_variant_to_managed = "VariantUtils.ConvertTo" #m_proxy_t_capitalized "Span(%0)"; \
+		builtin_types.insert(itype.name, itype);                                                  \
 	}
 
-#define INSERT_ARRAY(m_type, m_managed_type, m_proxy_t) INSERT_ARRAY_FULL(m_type, m_type, m_managed_type, m_proxy_t)
+#define INSERT_ARRAY(m_type, m_managed_type, m_proxy_t, m_proxy_t_capitalized) INSERT_ARRAY_FULL(m_type, m_type, m_managed_type, m_proxy_t, m_proxy_t_capitalized)
 
-	INSERT_ARRAY(PackedInt32Array, godot_packed_int32_array, int);
-	INSERT_ARRAY(PackedInt64Array, godot_packed_int64_array, long);
-	INSERT_ARRAY_FULL(PackedByteArray, PackedByteArray, godot_packed_byte_array, byte);
+	INSERT_ARRAY(PackedInt32Array, godot_packed_int32_array, int, Int);
+	INSERT_ARRAY(PackedInt64Array, godot_packed_int64_array, long, Long);
+	INSERT_ARRAY_FULL(PackedByteArray, PackedByteArray, godot_packed_byte_array, byte, Byte);
 
-	INSERT_ARRAY(PackedFloat32Array, godot_packed_float32_array, float);
-	INSERT_ARRAY(PackedFloat64Array, godot_packed_float64_array, double);
+	INSERT_ARRAY(PackedFloat32Array, godot_packed_float32_array, float, Float);
+	INSERT_ARRAY(PackedFloat64Array, godot_packed_float64_array, double, Double);
 
-	INSERT_ARRAY(PackedStringArray, godot_packed_string_array, string);
+	INSERT_ARRAY(PackedStringArray, godot_packed_string_array, string, String);
 
-	INSERT_ARRAY(PackedColorArray, godot_packed_color_array, Color);
-	INSERT_ARRAY(PackedVector2Array, godot_packed_vector2_array, Vector2);
-	INSERT_ARRAY(PackedVector3Array, godot_packed_vector3_array, Vector3);
-	INSERT_ARRAY(PackedVector4Array, godot_packed_vector4_array, Vector4);
+	INSERT_ARRAY(PackedColorArray, godot_packed_color_array, Color, Color);
+	INSERT_ARRAY(PackedVector2Array, godot_packed_vector2_array, Vector2, Vector2);
+	INSERT_ARRAY(PackedVector3Array, godot_packed_vector3_array, Vector3, Vector3);
+	INSERT_ARRAY(PackedVector4Array, godot_packed_vector4_array, Vector4, Vector4);
 
 #undef INSERT_ARRAY
 
@@ -4601,6 +4614,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 	itype.proxy_name = itype.name;
 	itype.type_parameter_count = 1;
 	itype.cs_type = BINDINGS_NAMESPACE_COLLECTIONS "." + itype.proxy_name;
+	itype.cs_type_generic_alternative = BINDINGS_NAMESPACE_COLLECTIONS "." + itype.proxy_name;
 	itype.cs_in_expr = "(%1)(%0 ?? new()).NativeValue";
 	itype.c_out = "%5return %0.CreateTakingOwnershipOfDisposableValue(%1);\n";
 	itype.c_arg_in = "&%s";
@@ -4628,6 +4642,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 	itype.proxy_name = itype.name;
 	itype.type_parameter_count = 2;
 	itype.cs_type = BINDINGS_NAMESPACE_COLLECTIONS "." + itype.proxy_name;
+	itype.cs_type_generic_alternative = BINDINGS_NAMESPACE_COLLECTIONS "." + itype.proxy_name;
 	itype.cs_in_expr = "(%1)(%0 ?? new()).NativeValue";
 	itype.c_out = "%5return %0.CreateTakingOwnershipOfDisposableValue(%1);\n";
 	itype.c_arg_in = "&%s";
@@ -4654,6 +4669,7 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 	itype.cname = itype.name;
 	itype.proxy_name = itype.name;
 	itype.cs_type = itype.proxy_name;
+	itype.cs_type_generic_alternative = itype.proxy_name;
 	itype.c_type = itype.proxy_name;
 	itype.c_type_in = itype.c_type;
 	itype.c_type_out = itype.c_type;

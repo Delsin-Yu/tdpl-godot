@@ -432,6 +432,12 @@ class BindingsGenerator {
 		String cs_type;
 
 		/**
+		 * Type declaration used for generic argument substitution; generally, it should be equal to [cs_type].
+		 * This property is here to handle the case where ReadOnlySpan<T> cannot be used as a generic type argument where we have to fall back to T[].
+		 */
+		String cs_type_generic_alternative;
+
+		/**
 		 * Formatting elements:
 		 * %0: input expression of type `in godot_variant`
 		 * %1: [cs_type] of this type
@@ -537,6 +543,7 @@ class BindingsGenerator {
 			}
 
 			itype.cs_type = itype.proxy_name;
+			itype.cs_type_generic_alternative = itype.proxy_name;
 			itype.c_type = itype.cs_type;
 			itype.c_type_in = itype.cs_type + "*";
 			itype.c_type_out = itype.cs_type;

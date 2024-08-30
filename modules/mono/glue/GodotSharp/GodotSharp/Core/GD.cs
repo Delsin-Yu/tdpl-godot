@@ -630,7 +630,7 @@ namespace Godot
         /// </summary>
         /// <param name="var"><see cref="Variant"/> that will be encoded.</param>
         /// <returns>The <see cref="Variant"/> encoded as an array of bytes.</returns>
-        public static byte[] VarToBytes(Variant var)
+        public static ReadOnlySpan<byte> VarToBytes(Variant var)
         {
             NativeFuncs.godotsharp_var_to_bytes((godot_variant)var.NativeVar, godot_bool.False, out var varBytes);
             using (varBytes)
@@ -643,7 +643,7 @@ namespace Godot
         /// </summary>
         /// <param name="var"><see cref="Variant"/> that will be encoded.</param>
         /// <returns>The <see cref="Variant"/> encoded as an array of bytes.</returns>
-        public static byte[] VarToBytesWithObjects(Variant var)
+        public static ReadOnlySpan<byte> VarToBytesWithObjects(Variant var)
         {
             NativeFuncs.godotsharp_var_to_bytes((godot_variant)var.NativeVar, godot_bool.True, out var varBytes);
             using (varBytes)
