@@ -176,6 +176,13 @@ partial class RenderingDevice
     {
         return DrawListBegin(framebuffer, initialColorAction, finalColorAction, initialDepthAction, finalDepthAction, clearColorValues, clearDepth, clearStencil, region, new Godot.Collections.Array<Rid>(storageTextures));
     }
+
+    /// <inheritdoc cref="DrawListBegin(Rid, InitialAction, FinalAction, InitialAction, FinalAction, ReadOnlySpan{Color}, float, uint, Nullable{Rect2}, Godot.Collections.Array{Rid})"/>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public long DrawListBegin(Rid framebuffer, InitialAction initialColorAction, FinalAction finalColorAction, InitialAction initialDepthAction, FinalAction finalDepthAction, ReadOnlySpan<Color> clearColorValues, float clearDepth, uint clearStencil, Nullable<Rect2> region, Godot.Collections.Array storageTextures)
+    {
+        return DrawListBegin(framebuffer, initialColorAction, finalColorAction, initialDepthAction, finalDepthAction, clearColorValues, clearDepth, clearStencil, region, new Godot.Collections.Array<Rid>(storageTextures));
+    }
 }
 
 partial class RichTextLabel
@@ -187,11 +194,11 @@ partial class RichTextLabel
         PushList(level, type, capitalize, bullet: "•");
     }
 
-    /// <inheritdoc cref="PushParagraph(HorizontalAlignment, TextDirection, string, TextServer.StructuredTextParser, TextServer.JustificationFlag, float[])"/>
+    /// <inheritdoc cref="PushParagraph(Godot.HorizontalAlignment, Godot.Control.TextDirection, string, Godot.TextServer.StructuredTextParser, TextServer.JustificationFlag, float[])"/>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void PushParagraph(HorizontalAlignment alignment, TextDirection baseDirection, string language, TextServer.StructuredTextParser stParser)
     {
-        PushParagraph(alignment, baseDirection, language, stParser, TextServer.JustificationFlag.WordBound | TextServer.JustificationFlag.Kashida | TextServer.JustificationFlag.SkipLastLine | TextServer.JustificationFlag.DoNotSkipSingleLine);
+        PushParagraph(alignment, baseDirection, language, stParser, TextServer.JustificationFlag.WordBound | TextServer.JustificationFlag.Kashida | TextServer.JustificationFlag.SkipLastLine | TextServer.JustificationFlag.DoNotSkipSingleLine, Array.Empty<float>());
     }
 }
 
@@ -200,6 +207,13 @@ partial class SurfaceTool
     /// <inheritdoc cref="AddTriangleFan(Vector3[], Vector2[], Color[], Vector2[], Vector3[], Godot.Collections.Array{Plane})"/>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void AddTriangleFan(Vector3[] vertices, Vector2[] uvs, Color[] colors, Vector2[] uv2S, Vector3[] normals, Godot.Collections.Array tangents)
+    {
+        AddTriangleFan(vertices, uvs, colors, uv2S, normals, new Godot.Collections.Array<Plane>(tangents));
+    }
+
+    /// <inheritdoc cref="AddTriangleFan(ReadOnlySpan{Vector3},ReadOnlySpan{Vector2},ReadOnlySpan{Color},ReadOnlySpan{Vector2},ReadOnlySpan{Vector3},Godot.Collections.Array)"/>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public void AddTriangleFan(ReadOnlySpan<Vector3> vertices, ReadOnlySpan<Vector2> uvs, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uv2S, ReadOnlySpan<Vector3> normals, Godot.Collections.Array tangents)
     {
         AddTriangleFan(vertices, uvs, colors, uv2S, normals, new Godot.Collections.Array<Plane>(tangents));
     }
