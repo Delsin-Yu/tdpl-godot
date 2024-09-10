@@ -11,6 +11,7 @@
     <LangVersion>10</LangVersion>
 
     <AnalysisMode>Recommended</AnalysisMode>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
   <PropertyGroup>
     <Description>Godot C# Core API.</Description>
