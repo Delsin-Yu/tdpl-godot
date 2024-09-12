@@ -29,6 +29,15 @@ namespace Godot
             }
         }
 
+        internal GodotObject(IntPtr nativePtr) : this(false)
+        {
+            NativePtr = nativePtr;
+            unsafe
+            {
+                ConstructAndInitialize(NativeCtor, NativeName, _cachedType, refCounted: false);
+            }
+        }
+
         internal unsafe void ConstructAndInitialize(
             delegate* unmanaged<godot_bool, IntPtr> nativeCtor,
             StringName nativeName,
