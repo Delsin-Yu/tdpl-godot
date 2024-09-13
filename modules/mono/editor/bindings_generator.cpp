@@ -81,6 +81,10 @@ StringBuilder &operator<<(StringBuilder &r_sb, const char *p_cstring) {
 #define BINDINGS_CLASS_CONSTRUCTOR_EDITOR "EditorConstructors"
 #define BINDINGS_CLASS_CONSTRUCTOR_DICTIONARY "BuiltinMethodConstructors"
 
+#define BINDINGS_CLASS_NATIVENAMES "NativeNames"
+#define BINDINGS_CLASS_NATIVENAMES_EDITOR "EditorNativeNames"
+#define BINDINGS_CLASS_NATIVENAMES_DICTIONARY "BuiltinTypeNativeNames"
+
 #define CS_PARAM_MEMORYOWN "memoryOwn"
 #define CS_PARAM_METHODBIND "method"
 #define CS_PARAM_INSTANCE "ptr"
@@ -1746,6 +1750,7 @@ Error BindingsGenerator::generate_cs_core_project(const String &p_proj_dir) {
 	{
 		StringBuilder cs_builtin_ctors_content;
 
+		cs_builtin_ctors_content.append("#pragma warning disable CS0618 // Type or member is obsolete\n");
 		cs_builtin_ctors_content.append("namespace " BINDINGS_NAMESPACE ";\n\n");
 		cs_builtin_ctors_content.append("using System;\n"
 										"using System.Collections.Generic;\n"
@@ -1794,6 +1799,57 @@ Error BindingsGenerator::generate_cs_core_project(const String &p_proj_dir) {
 		}
 
 		compile_items.push_back(constructors_file);
+	}
+
+	// Generate source file for builtin type native names dictionary
+
+	{
+		StringBuilder cs_builtin_nativenames_content;
+
+		cs_builtin_nativenames_content.append("#pragma warning disable CS0618 // Type or member is obsolete\n");
+		cs_builtin_nativenames_content.append("namespace " BINDINGS_NAMESPACE ";\n\n");
+		cs_builtin_nativenames_content.append("using System;\n"
+											  "using System.Collections.Generic;\n"
+											  "\n");
+		cs_builtin_nativenames_content.append("internal static class " BINDINGS_CLASS_NATIVENAMES "\n{");
+
+		cs_builtin_nativenames_content.append(MEMBER_BEGIN "internal static readonly Dictionary<Type, StringName> " BINDINGS_CLASS_NATIVENAMES_DICTIONARY ";\n");
+
+		cs_builtin_nativenames_content.append(MEMBER_BEGIN "internal static bool TryGet(Type nativeType, out StringName nativeName)\n");
+		cs_builtin_nativenames_content.append(INDENT1 OPEN_BLOCK);
+		cs_builtin_nativenames_content.append(INDENT2 "return " BINDINGS_CLASS_NATIVENAMES_DICTIONARY ".TryGetValue(nativeType, out nativeName);\n");
+		cs_builtin_nativenames_content.append(INDENT1 CLOSE_BLOCK);
+
+		cs_builtin_nativenames_content.append(MEMBER_BEGIN "static " BINDINGS_CLASS_NATIVENAMES "()\n");
+		cs_builtin_nativenames_content.append(INDENT1 OPEN_BLOCK);
+		cs_builtin_nativenames_content.append(INDENT2 BINDINGS_CLASS_NATIVENAMES_DICTIONARY " = new();\n");
+
+		for (const KeyValue<StringName, TypeInterface> &E : obj_types) {
+			const TypeInterface &itype = E.value;
+
+			if (itype.api_type != ClassDB::API_CORE || itype.is_singleton_instance) {
+				continue;
+			}
+
+			cs_builtin_nativenames_content.append(INDENT2 BINDINGS_CLASS_NATIVENAMES_DICTIONARY ".Add(typeof(");
+			cs_builtin_nativenames_content.append(itype.proxy_name);
+			cs_builtin_nativenames_content.append("), ");
+			cs_builtin_nativenames_content.append(itype.proxy_name);
+			cs_builtin_nativenames_content.append("." BINDINGS_NATIVE_NAME_FIELD ");\n");
+		}
+
+		cs_builtin_nativenames_content.append(INDENT1 CLOSE_BLOCK);
+
+		cs_builtin_nativenames_content.append(CLOSE_BLOCK);
+
+		String nativenames_file = path::join(base_gen_dir, BINDINGS_CLASS_NATIVENAMES ".cs");
+		Error err = _save_file(nativenames_file, cs_builtin_nativenames_content);
+
+		if (err != OK) {
+			return err;
+		}
+
+		compile_items.push_back(nativenames_file);
 	}
 
 	// Generate native calls
@@ -2253,7 +2309,11 @@ Error BindingsGenerator::_generate_cs_type(const TypeInterface &itype, const Str
 		output << MEMBER_BEGIN "private static readonly System.Type CachedType = typeof(" << itype.proxy_name << ");\n";
 	}
 
-	output.append(MEMBER_BEGIN "private static readonly StringName " BINDINGS_NATIVE_NAME_FIELD " = \"");
+	output.append(MEMBER_BEGIN "internal ");
+	if (is_derived_type && !itype.is_singleton) {
+		output.append("new ");
+	}
+	output.append("static readonly StringName " BINDINGS_NATIVE_NAME_FIELD " = \"");
 	output.append(itype.name);
 	output.append("\";\n");
 

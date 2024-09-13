@@ -4,6 +4,12 @@ namespace Godot.Bridge;
 
 #nullable enable
 
+public readonly struct RpcMethodInfo
+{
+    public string Name { get; init; }
+    public RpcAttribute RpcAttribute { get; init; }
+}
+
 public readonly struct MethodInfo
 {
     public StringName Name { get; init; }

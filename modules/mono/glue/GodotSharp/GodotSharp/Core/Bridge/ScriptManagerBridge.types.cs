@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Godot.NativeInterop;
 
 namespace Godot.Bridge;
 
@@ -11,6 +14,95 @@ namespace Godot.Bridge;
 
 public static partial class ScriptManagerBridge
 {
+    private class ScriptRuntimeInfo
+    {
+        public record struct ScriptTypeInfo(
+            Dictionary<int, ScriptConstructorInfo> ConstructorInfos,
+            InvokeGodotClassStaticMethodDelegate? CallStaticMethodDelegate,
+            MethodInfo[] MethodList,
+            MethodInfo[] SignalList,
+            PropertyInfo[] PropertyList,
+            RpcMethodInfo[] RpcMethodList,
+            Dictionary<StringName, Variant> DefaultValuesDictionary);
+
+        public record struct ScriptConstructorInfo(Action<IntPtr, object?[]> Constructor, Type[] ParameterTypes);
+
+        private Dictionary<Type, ScriptTypeInfo> _userTypeInfo;
+
+        public bool TryGetTypeConstructor(
+            Type type, // user type
+            int argCount,
+            [NotNullWhen(true)] out Action<IntPtr, object?[]>? constructor,
+            [NotNullWhen(true)] out Type[]? parametersType)
+        {
+            constructor = null;
+            parametersType = null;
+            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            if (!scriptTypeInfo.ConstructorInfos.TryGetValue(argCount, out var constructorInfo)) return false;
+            (constructor, parametersType) = constructorInfo;
+            return true;
+        }
+
+        public bool TryInvokeScriptTypeStaticMethod(
+            Type type, // user type
+            in godot_string_name method,
+            NativeVariantPtrArgs args,
+            out godot_variant ret)
+        {
+            ret = default;
+            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            if (scriptTypeInfo.CallStaticMethodDelegate is null) return false;
+            return scriptTypeInfo.CallStaticMethodDelegate(in method, args, out ret);
+        }
+
+        public bool TryGetMethodListForType(
+            Type type, // user type
+            [NotNullWhen(true)] out MethodInfo[]? methodList)
+        {
+            methodList = null;
+            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            methodList = scriptTypeInfo.MethodList;
+            return true;
+        }
+
+        public bool TryGetSignalListForType(
+            Type type, // user type
+            [NotNullWhen(true)] out MethodInfo[]? signalList)
+        {
+            signalList = null;
+            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            signalList = scriptTypeInfo.SignalList;
+            return true;
+        }
+
+        public bool TryGetPropertyListForType(
+            Type type, // user type
+            [NotNullWhen(true)] out PropertyInfo[]? propertyList)
+        {
+            propertyList = null;
+            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            propertyList = scriptTypeInfo.PropertyList;
+            return true;
+        }
+
+        public bool TryGetScriptTypePropertyDefaultValues(
+            Type type, // user type
+            [NotNullWhen(true)] out Dictionary<StringName, Variant>? defaultValuesDictionary)
+        {
+            defaultValuesDictionary = null;
+            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            defaultValuesDictionary = scriptTypeInfo.DefaultValuesDictionary;
+            return true;
+        }
+
+        public RpcMethodInfo[] GetRpcMethodsForType(
+            Type type // user type
+        )
+        {
+            return !_userTypeInfo.TryGetValue(type, out var scriptTypeInfo) ? Array.Empty<RpcMethodInfo>() : scriptTypeInfo.RpcMethodList;
+        }
+    }
+
     private class ScriptTypeBiMap
     {
         public readonly object ReadWriteLock = new();

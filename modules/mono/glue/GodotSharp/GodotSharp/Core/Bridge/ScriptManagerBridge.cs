@@ -10,7 +10,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
-using System.Runtime.Serialization;
 using System.Text;
 using Godot.NativeInterop;
 
@@ -72,6 +71,7 @@ namespace Godot.Bridge
 
         private static ScriptTypeBiMap _scriptTypeBiMap = new();
         private static PathScriptTypeBiMap _pathTypeBiMap = new();
+        private static ScriptRuntimeInfo _scriptRuntimeInfo = new();
 
         private static ConcurrentDictionary<IntPtr, (string? assemblyName, string classFullName)>
             _scriptDataForReload = new();
@@ -115,21 +115,13 @@ namespace Godot.Bridge
             IntPtr godotObject,
             godot_variant** args, int argCount)
         {
-            // TODO: Optimize with source generators and delegate pointers.
-
             try
             {
-                // Performance is not critical here as this will be replaced with source generators.
                 Type scriptType = _scriptTypeBiMap.GetScriptType(scriptPtr);
 
                 Debug.Assert(!scriptType.IsAbstract, $"Cannot create script instance. The class '{scriptType.FullName}' is abstract.");
 
-                var ctor = scriptType
-                    .GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                    .Where(c => c.GetParameters().Length == argCount)
-                    .FirstOrDefault();
-
-                if (ctor == null)
+                if (!_scriptRuntimeInfo.TryGetTypeConstructor(scriptType, argCount, out var constructor, out var parametersType))
                 {
                     if (argCount == 0)
                     {
@@ -143,23 +135,15 @@ namespace Godot.Bridge
                     }
                 }
 
-                var obj = (GodotObject)FormatterServices.GetUninitializedObject(scriptType);
+                var invokeParams = new object?[argCount];
 
-                var parameters = ctor.GetParameters();
-                int paramCount = parameters.Length;
-
-                var invokeParams = new object?[paramCount];
-
-                for (int i = 0; i < paramCount; i++)
+                for (int i = 0; i < argCount; i++)
                 {
                     invokeParams[i] = DelegateUtils.RuntimeTypeConversionHelper.ConvertToObjectOfType(
-                        *args[i], parameters[i].ParameterType);
+                        *args[i], parametersType[i]);
                 }
 
-                obj.NativePtr = godotObject;
-
-                _ = ctor.Invoke(obj, invokeParams);
-
+                constructor.Invoke(godotObject, invokeParams);
 
                 return godot_bool.True;
             }
@@ -175,7 +159,6 @@ namespace Godot.Bridge
         {
             try
             {
-                // Performance is not critical here as this will be replaced with source generators.
                 if (!_scriptTypeBiMap.TryGetScriptType(scriptPtr, out Type? scriptType))
                 {
                     *outRes = default;
@@ -184,18 +167,7 @@ namespace Godot.Bridge
 
                 var native = GodotObject.InternalGetClassNativeBase(scriptType);
 
-                var field = native.GetField("NativeName", BindingFlags.DeclaredOnly | BindingFlags.Static |
-                                                           BindingFlags.Public | BindingFlags.NonPublic);
-
-                if (field == null)
-                {
-                    *outRes = default;
-                    return;
-                }
-
-                var nativeName = (StringName?)field.GetValue(null);
-
-                if (nativeName == null)
+                if (!NativeNames.TryGet(native, out var nativeName))
                 {
                     *outRes = default;
                     return;
@@ -431,7 +403,7 @@ namespace Godot.Bridge
             }
         }
 
-        private static unsafe bool AddScriptBridgeCore(IntPtr scriptPtr, string scriptPath)
+        private static bool AddScriptBridgeCore(IntPtr scriptPtr, string scriptPath)
         {
             lock (_scriptTypeBiMap.ReadWriteLock)
             {
@@ -658,7 +630,7 @@ namespace Godot.Bridge
 
         private static unsafe void GetScriptTypeInfo(Type scriptType, godot_csharp_type_info* outTypeInfo)
         {
-            Type native = GodotObject.InternalGetClassNativeBase(scriptType);
+            _ = GodotObject.InternalGetClassNativeBase(scriptType);
 
             string typeName = scriptType.Name;
             if (scriptType.IsGenericType)
@@ -740,12 +712,9 @@ namespace Godot.Bridge
                 // Performance is not critical here as this will be replaced with source generators.
                 using var methods = new Collections.Array();
 
-                Type? top = scriptType;
                 if (scriptType != native)
                 {
-                    var methodList = GetMethodListForType(scriptType);
-
-                    if (methodList != null)
+                    if (_scriptRuntimeInfo.TryGetMethodListForType(scriptType, out var methodList))
                     {
                         foreach (var method in methodList)
                         {
@@ -803,26 +772,18 @@ namespace Godot.Bridge
 
                 Collections.Dictionary rpcFunctions = new();
 
-                top = scriptType;
+                var top = scriptType;
 
                 while (top != null && top != native)
                 {
-                    foreach (var method in top.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Instance |
-                                                          BindingFlags.NonPublic | BindingFlags.Public))
+                    foreach (var method in _scriptRuntimeInfo.GetRpcMethodsForType(top))
                     {
-                        if (method.IsStatic)
-                            continue;
-
                         string methodName = method.Name;
 
                         if (rpcFunctions.ContainsKey(methodName))
                             continue;
 
-                        var rpcAttr = method.GetCustomAttributes(inherit: false)
-                            .OfType<RpcAttribute>().FirstOrDefault();
-
-                        if (rpcAttr == null)
-                            continue;
+                        var rpcAttr = method.RpcAttribute;
 
                         var rpcConfig = new Collections.Dictionary();
 
@@ -831,7 +792,7 @@ namespace Godot.Bridge
                         rpcConfig["transfer_mode"] = (long)rpcAttr.TransferMode;
                         rpcConfig["channel"] = rpcAttr.TransferChannel;
 
-                        rpcFunctions.Add(methodName, rpcConfig);
+                        rpcFunctions.Add(method.Name, rpcConfig);
                     }
 
                     top = top.BaseType;
@@ -847,9 +808,7 @@ namespace Godot.Bridge
 
                 if (scriptType != native)
                 {
-                    var signalList = GetSignalListForType(scriptType);
-
-                    if (signalList != null)
+                    if (_scriptRuntimeInfo.TryGetSignalListForType(scriptType, out var signalList))
                     {
                         foreach (var signal in signalList)
                         {
@@ -910,32 +869,6 @@ namespace Godot.Bridge
             }
         }
 
-        private static List<MethodInfo>? GetSignalListForType(Type type)
-        {
-            var getGodotSignalListMethod = type.GetMethod(
-                "GetGodotSignalList",
-                BindingFlags.DeclaredOnly | BindingFlags.Static |
-                BindingFlags.NonPublic | BindingFlags.Public);
-
-            if (getGodotSignalListMethod == null)
-                return null;
-
-            return (List<MethodInfo>?)getGodotSignalListMethod.Invoke(null, null);
-        }
-
-        private static List<MethodInfo>? GetMethodListForType(Type type)
-        {
-            var getGodotMethodListMethod = type.GetMethod(
-                "GetGodotMethodList",
-                BindingFlags.DeclaredOnly | BindingFlags.Static |
-                BindingFlags.NonPublic | BindingFlags.Public);
-
-            if (getGodotMethodListMethod == null)
-                return null;
-
-            return (List<MethodInfo>?)getGodotMethodListMethod.Invoke(null, null);
-        }
-
 #pragma warning disable IDE1006 // Naming rule violation
         // ReSharper disable once InconsistentNaming
         // ReSharper disable once NotAccessedField.Local
@@ -977,21 +910,13 @@ namespace Godot.Bridge
         {
             try
             {
-                var getGodotPropertyListMethod = type.GetMethod(
-                    "GetGodotPropertyList",
-                    BindingFlags.DeclaredOnly | BindingFlags.Static |
-                    BindingFlags.NonPublic | BindingFlags.Public);
-
-                if (getGodotPropertyListMethod == null)
+                if (!_scriptRuntimeInfo.TryGetPropertyListForType(type, out var propertyList))
                     return;
 
-                var properties = (List<PropertyInfo>?)
-                    getGodotPropertyListMethod.Invoke(null, null);
-
-                if (properties == null || properties.Count <= 0)
+                if (propertyList.Length <= 0)
                     return;
 
-                int length = properties.Count;
+                int length = propertyList.Length;
 
                 // There's no recursion here, so it's ok to go with a big enough number for most cases
                 // StackMaxSize = StackMaxLength * sizeof(godotsharp_property_info)
@@ -1017,7 +942,7 @@ namespace Godot.Bridge
                 {
                     for (int i = 0; i < length; i++)
                     {
-                        var property = properties[i];
+                        var property = propertyList[i];
 
                         godotsharp_property_info interopProperty = new()
                         {
@@ -1038,7 +963,7 @@ namespace Godot.Bridge
 
                     // We're borrowing the native value of the StringName entries.
                     // The dictionary needs to be kept alive until `addPropInfoFunc` returns.
-                    GC.KeepAlive(properties);
+                    GC.KeepAlive(propertyList);
                 }
                 finally
                 {
@@ -1069,12 +994,11 @@ namespace Godot.Bridge
 
         private delegate bool InvokeGodotClassStaticMethodDelegate(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret);
 
+
         [UnmanagedCallersOnly]
         internal static unsafe godot_bool CallStatic(IntPtr scriptPtr, godot_string_name* method,
             godot_variant** args, int argCount, godot_variant_call_error* refCallError, godot_variant* ret)
         {
-            // TODO: Optimize with source generators and delegate pointers.
-
             try
             {
                 Type scriptType = _scriptTypeBiMap.GetScriptType(scriptPtr);
@@ -1084,20 +1008,10 @@ namespace Godot.Bridge
 
                 while (top != null && top != native)
                 {
-                    var invokeGodotClassStaticMethod = top.GetMethod(
-                        "InvokeGodotClassStaticMethod",
-                        BindingFlags.DeclaredOnly | BindingFlags.Static |
-                        BindingFlags.NonPublic | BindingFlags.Public);
-
-                    if (invokeGodotClassStaticMethod != null)
+                    if (_scriptRuntimeInfo.TryInvokeScriptTypeStaticMethod(top, CustomUnsafe.AsRef(method), new NativeVariantPtrArgs(args, argCount), out godot_variant retValue))
                     {
-                        var invoked = invokeGodotClassStaticMethod.CreateDelegate<InvokeGodotClassStaticMethodDelegate>()(
-                            CustomUnsafe.AsRef(method), new NativeVariantPtrArgs(args, argCount), out godot_variant retValue);
-                        if (invoked)
-                        {
-                            *ret = retValue;
-                            return godot_bool.True;
-                        }
+                        *ret = retValue;
+                        return godot_bool.True;
                     }
 
                     top = top.BaseType;
@@ -1143,43 +1057,7 @@ namespace Godot.Bridge
         {
             try
             {
-                var getGodotPropertyDefaultValuesMethod = type.GetMethod(
-                    "GetGodotPropertyDefaultValues",
-                    BindingFlags.DeclaredOnly | BindingFlags.Static |
-                    BindingFlags.NonPublic | BindingFlags.Public);
-
-                if (getGodotPropertyDefaultValuesMethod == null)
-                    return;
-
-                var defaultValuesObj = getGodotPropertyDefaultValuesMethod.Invoke(null, null);
-
-                if (defaultValuesObj == null)
-                    return;
-
-                Dictionary<StringName, Variant> defaultValues;
-
-                if (defaultValuesObj is Dictionary<StringName, object> defaultValuesLegacy)
-                {
-                    // We have to support this for some time, otherwise this could cause data loss for projects
-                    // built with previous releases. Ideally, we should remove this before Godot 4.0 stable.
-
-                    if (defaultValuesLegacy.Count <= 0)
-                        return;
-
-                    defaultValues = new();
-
-                    foreach (var pair in defaultValuesLegacy)
-                    {
-                        defaultValues[pair.Key] = Variant.CreateTakingOwnershipOfDisposableValue(
-                            DelegateUtils.RuntimeTypeConversionHelper.ConvertToVariant(pair.Value));
-                    }
-                }
-                else
-                {
-                    defaultValues = (Dictionary<StringName, Variant>)defaultValuesObj;
-                }
-
-                if (defaultValues.Count <= 0)
+                if(!_scriptRuntimeInfo.TryGetScriptTypePropertyDefaultValues(type, out var defaultValues))
                     return;
 
                 int length = defaultValues.Count;
@@ -1221,10 +1099,6 @@ namespace Godot.Bridge
                     }
 
                     addDefValFunc(scriptPtr, interopDefaultValues, length);
-
-                    // We're borrowing the native value of the StringName and Variant entries.
-                    // The dictionary needs to be kept alive until `addDefValFunc` returns.
-                    GC.KeepAlive(defaultValues);
                 }
                 finally
                 {
