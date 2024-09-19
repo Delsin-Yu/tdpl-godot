@@ -269,6 +269,10 @@ namespace Godot.Bridge
         }
 
         // Called from GodotPlugins
+        public static void AddScriptTypeInfo(Type type, ScriptTypeInfo scriptTypeInfo) =>
+            _scriptRuntimeInfo.ScriptTypeInfo.Add(type, scriptTypeInfo);
+
+        // Called from GodotPlugins
         // ReSharper disable once UnusedMember.Local
         public static void LookupScriptsInAssembly(Assembly assembly)
         {
@@ -991,9 +995,6 @@ namespace Godot.Bridge
             public godot_variant Value; // Not owned
         }
 #pragma warning restore IDE1006
-
-        private delegate bool InvokeGodotClassStaticMethodDelegate(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret);
-
 
         [UnmanagedCallersOnly]
         internal static unsafe godot_bool CallStatic(IntPtr scriptPtr, godot_string_name* method,

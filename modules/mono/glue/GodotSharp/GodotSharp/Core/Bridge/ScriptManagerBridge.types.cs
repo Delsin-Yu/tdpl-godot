@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Godot.NativeInterop;
 
 namespace Godot.Bridge;
@@ -16,18 +15,7 @@ public static partial class ScriptManagerBridge
 {
     private class ScriptRuntimeInfo
     {
-        public record struct ScriptTypeInfo(
-            Dictionary<int, ScriptConstructorInfo> ConstructorInfos,
-            InvokeGodotClassStaticMethodDelegate? CallStaticMethodDelegate,
-            MethodInfo[] MethodList,
-            MethodInfo[] SignalList,
-            PropertyInfo[] PropertyList,
-            RpcMethodInfo[] RpcMethodList,
-            Dictionary<StringName, Variant> DefaultValuesDictionary);
-
-        public record struct ScriptConstructorInfo(Action<IntPtr, object?[]> Constructor, Type[] ParameterTypes);
-
-        private Dictionary<Type, ScriptTypeInfo> _userTypeInfo;
+        internal readonly Dictionary<Type, ScriptTypeInfo> ScriptTypeInfo = new();
 
         public bool TryGetTypeConstructor(
             Type type, // user type
@@ -37,7 +25,7 @@ public static partial class ScriptManagerBridge
         {
             constructor = null;
             parametersType = null;
-            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            if (!ScriptTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
             if (!scriptTypeInfo.ConstructorInfos.TryGetValue(argCount, out var constructorInfo)) return false;
             (constructor, parametersType) = constructorInfo;
             return true;
@@ -50,7 +38,7 @@ public static partial class ScriptManagerBridge
             out godot_variant ret)
         {
             ret = default;
-            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            if (!ScriptTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
             if (scriptTypeInfo.CallStaticMethodDelegate is null) return false;
             return scriptTypeInfo.CallStaticMethodDelegate(in method, args, out ret);
         }
@@ -60,7 +48,7 @@ public static partial class ScriptManagerBridge
             [NotNullWhen(true)] out MethodInfo[]? methodList)
         {
             methodList = null;
-            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            if (!ScriptTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
             methodList = scriptTypeInfo.MethodList;
             return true;
         }
@@ -70,7 +58,7 @@ public static partial class ScriptManagerBridge
             [NotNullWhen(true)] out MethodInfo[]? signalList)
         {
             signalList = null;
-            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            if (!ScriptTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
             signalList = scriptTypeInfo.SignalList;
             return true;
         }
@@ -80,7 +68,7 @@ public static partial class ScriptManagerBridge
             [NotNullWhen(true)] out PropertyInfo[]? propertyList)
         {
             propertyList = null;
-            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            if (!ScriptTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
             propertyList = scriptTypeInfo.PropertyList;
             return true;
         }
@@ -90,7 +78,7 @@ public static partial class ScriptManagerBridge
             [NotNullWhen(true)] out Dictionary<StringName, Variant>? defaultValuesDictionary)
         {
             defaultValuesDictionary = null;
-            if (!_userTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
+            if (!ScriptTypeInfo.TryGetValue(type, out var scriptTypeInfo)) return false;
             defaultValuesDictionary = scriptTypeInfo.DefaultValuesDictionary;
             return true;
         }
@@ -99,7 +87,7 @@ public static partial class ScriptManagerBridge
             Type type // user type
         )
         {
-            return !_userTypeInfo.TryGetValue(type, out var scriptTypeInfo) ? Array.Empty<RpcMethodInfo>() : scriptTypeInfo.RpcMethodList;
+            return !ScriptTypeInfo.TryGetValue(type, out var scriptTypeInfo) ? Array.Empty<RpcMethodInfo>() : scriptTypeInfo.RpcMethodList;
         }
     }
 
