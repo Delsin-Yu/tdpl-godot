@@ -1877,6 +1877,9 @@ Control::MouseFilter Control::get_mouse_filter_with_recursive() const {
 void Control::set_mouse_recursive_behavior(const RecursiveBehavior p_recursive_mouse_behavior) {
 	ERR_MAIN_THREAD_GUARD;
 	ERR_FAIL_INDEX((int)p_recursive_mouse_behavior, 4);
+	if (data.mouse_recursive_behavior == p_recursive_mouse_behavior) {
+		return;
+	}
 	data.mouse_recursive_behavior = p_recursive_mouse_behavior;
 	if (p_recursive_mouse_behavior == RECURSIVE_BEHAVIOR_INHERITED) {
 		Control *parent = get_parent_control();
@@ -2058,6 +2061,9 @@ Control::FocusMode Control::get_focus_mode_with_recursive() const {
 void Control::set_focus_recursive_behavior(RecursiveBehavior p_recursive_focus_behavior) {
 	ERR_MAIN_THREAD_GUARD;
 	ERR_FAIL_INDEX((int)p_recursive_focus_behavior, 4);
+	if (data.focus_recursive_behavior == p_recursive_focus_behavior) {
+		return;
+	}
 	data.focus_recursive_behavior = p_recursive_focus_behavior;
 	if (p_recursive_focus_behavior == RECURSIVE_BEHAVIOR_INHERITED) {
 		Control *parent = get_parent_control();
@@ -2433,7 +2439,6 @@ bool Control::_is_parent_mouse_disabled() const {
 			return true;
 		case RECURSIVE_BEHAVIOR_ENABLED:
 			return false;
-			break;
 	}
 	return false;
 }
