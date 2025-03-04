@@ -104,6 +104,11 @@ namespace Godot.NativeInterop
         {
             try
             {
+                if (ExceptionHandlers.Handler?.TryHandleException(e) == true)
+                {
+                    return;
+                }
+
                 if (NativeFuncs.godotsharp_internal_script_debugger_is_active().ToBool())
                 {
                     SendToScriptDebugger(e);
