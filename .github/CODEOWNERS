@@ -114,6 +114,7 @@
 /modules/hdr/                                 @godotengine/asset-pipeline
 /modules/jpg/                                 @godotengine/asset-pipeline
 /modules/ktx/                                 @godotengine/asset-pipeline
+/modules/packed_texture/                      @Delsin-Yu
 /modules/svg/                                 @godotengine/asset-pipeline
 /modules/tga/                                 @godotengine/asset-pipeline
 /modules/tinyexr/                             @godotengine/asset-pipeline
