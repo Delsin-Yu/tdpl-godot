@@ -36,6 +36,15 @@
 				Fails if it doesn't exist. Use [method has_color] to check for existence.
 			</description>
 		</method>
+		<method name="clear_color_array">
+			<return type="void" />
+			<param index="0" name="name" type="StringName" />
+			<param index="1" name="theme_type" type="StringName" />
+			<description>
+				Removes the [PackedColorArray] property defined by [param name] and [param theme_type], if it exists.
+				Fails if it doesn't exist. Use [method has_color_array] to check for existence.
+			</description>
+		</method>
 		<method name="clear_constant">
 			<return type="void" />
 			<param index="0" name="name" type="StringName" />
@@ -43,6 +52,15 @@
 			<description>
 				Removes the constant property defined by [param name] and [param theme_type], if it exists.
 				Fails if it doesn't exist. Use [method has_constant] to check for existence.
+			</description>
+		</method>
+		<method name="clear_constant_array">
+			<return type="void" />
+			<param index="0" name="name" type="StringName" />
+			<param index="1" name="theme_type" type="StringName" />
+			<description>
+				Removes the [PackedInt32Array] property defined by [param name] and [param theme_type], if it exists.
+				Fails if it doesn't exist. Use [method has_constant_array] to check for existence.
 			</description>
 		</method>
 		<method name="clear_font">
@@ -108,6 +126,28 @@
 				Returns the default color value if the property doesn't exist. Use [method has_color] to check for existence.
 			</description>
 		</method>
+		<method name="get_color_array" qualifiers="const">
+			<return type="PackedColorArray" />
+			<param index="0" name="name" type="StringName" />
+			<param index="1" name="theme_type" type="StringName" />
+			<description>
+				Returns the [PackedColorArray] property defined by [param name] and [param theme_type], if it exists.
+				Returns an empty array if the property doesn't exist. Use [method has_color_array] to check for existence.
+			</description>
+		</method>
+		<method name="get_color_array_list" qualifiers="const">
+			<return type="PackedStringArray" />
+			<param index="0" name="theme_type" type="String" />
+			<description>
+				Returns a list of names for [PackedColorArray] properties defined with [param theme_type]. Use [method get_color_array_type_list] to get a list of possible theme type names.
+			</description>
+		</method>
+		<method name="get_color_array_type_list" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+				Returns a list of all unique theme type names for [PackedColorArray] properties. Use [method get_type_list] to get a list of all unique theme types.
+			</description>
+		</method>
 		<method name="get_color_list" qualifiers="const">
 			<return type="PackedStringArray" />
 			<param index="0" name="theme_type" type="String" />
@@ -128,6 +168,28 @@
 			<description>
 				Returns the constant property defined by [param name] and [param theme_type], if it exists.
 				Returns [code]0[/code] if the property doesn't exist. Use [method has_constant] to check for existence.
+			</description>
+		</method>
+		<method name="get_constant_array" qualifiers="const">
+			<return type="PackedInt32Array" />
+			<param index="0" name="name" type="StringName" />
+			<param index="1" name="theme_type" type="StringName" />
+			<description>
+				Returns the [PackedInt32Array] property defined by [param name] and [param theme_type], if it exists.
+				Returns an empty array if the property doesn't exist. Use [method has_constant_array] to check for existence.
+			</description>
+		</method>
+		<method name="get_constant_array_list" qualifiers="const">
+			<return type="PackedStringArray" />
+			<param index="0" name="theme_type" type="String" />
+			<description>
+				Returns a list of names for [PackedInt32Array] properties defined with [param theme_type]. Use [method get_constant_array_type_list] to get a list of possible theme type names.
+			</description>
+		</method>
+		<method name="get_constant_array_type_list" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+				Returns a list of all unique theme type names for [PackedInt32Array] properties. Use [method get_type_list] to get a list of all unique theme types.
 			</description>
 		</method>
 		<method name="get_constant_list" qualifiers="const">
@@ -290,6 +352,15 @@
 				Returns [code]false[/code] if it doesn't exist. Use [method set_color] to define it.
 			</description>
 		</method>
+		<method name="has_color_array" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="name" type="StringName" />
+			<param index="1" name="theme_type" type="StringName" />
+			<description>
+				Returns [code]true[/code] if the [PackedColorArray] property defined by [param name] and [param theme_type] exists.
+				Returns [code]false[/code] if it doesn't exist. Use [method set_color_array] to define it.
+			</description>
+		</method>
 		<method name="has_constant" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="name" type="StringName" />
@@ -297,6 +368,15 @@
 			<description>
 				Returns [code]true[/code] if the constant property defined by [param name] and [param theme_type] exists.
 				Returns [code]false[/code] if it doesn't exist. Use [method set_constant] to define it.
+			</description>
+		</method>
+		<method name="has_constant_array" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="name" type="StringName" />
+			<param index="1" name="theme_type" type="StringName" />
+			<description>
+				Returns [code]true[/code] if the [PackedInt32Array] property defined by [param name] and [param theme_type] exists.
+				Returns [code]false[/code] if it doesn't exist. Use [method set_constant_array] to define it.
 			</description>
 		</method>
 		<method name="has_default_base_scale" qualifiers="const">
@@ -400,6 +480,16 @@
 				Fails if it doesn't exist, or if a similar property with the new name already exists. Use [method has_color] to check for existence, and [method clear_color] to remove the existing property.
 			</description>
 		</method>
+		<method name="rename_color_array">
+			<return type="void" />
+			<param index="0" name="old_name" type="StringName" />
+			<param index="1" name="name" type="StringName" />
+			<param index="2" name="theme_type" type="StringName" />
+			<description>
+				Renames the [PackedColorArray] property defined by [param old_name] and [param theme_type] to [param name], if it exists.
+				Fails if it doesn't exist, or if a similar property with the new name already exists. Use [method has_color_array] to check for existence, and [method clear_color_array] to remove the existing property.
+			</description>
+		</method>
 		<method name="rename_constant">
 			<return type="void" />
 			<param index="0" name="old_name" type="StringName" />
@@ -408,6 +498,16 @@
 			<description>
 				Renames the constant property defined by [param old_name] and [param theme_type] to [param name], if it exists.
 				Fails if it doesn't exist, or if a similar property with the new name already exists. Use [method has_constant] to check for existence, and [method clear_constant] to remove the existing property.
+			</description>
+		</method>
+		<method name="rename_constant_array">
+			<return type="void" />
+			<param index="0" name="old_name" type="StringName" />
+			<param index="1" name="name" type="StringName" />
+			<param index="2" name="theme_type" type="StringName" />
+			<description>
+				Renames the [PackedInt32Array] property defined by [param old_name] and [param theme_type] to [param name], if it exists.
+				Fails if it doesn't exist, or if a similar property with the new name already exists. Use [method has_constant_array] to check for existence, and [method clear_constant_array] to remove the existing property.
 			</description>
 		</method>
 		<method name="rename_font">
@@ -471,6 +571,15 @@
 				Creates or changes the value of the [Color] property defined by [param name] and [param theme_type]. Use [method clear_color] to remove the property.
 			</description>
 		</method>
+		<method name="set_color_array">
+			<return type="void" />
+			<param index="0" name="name" type="StringName" />
+			<param index="1" name="theme_type" type="StringName" />
+			<param index="2" name="color_array" type="PackedColorArray" />
+			<description>
+				Creates or changes the value of the [PackedColorArray] property defined by [param name] and [param theme_type]. Use [method clear_color_array] to remove the property.
+			</description>
+		</method>
 		<method name="set_constant">
 			<return type="void" />
 			<param index="0" name="name" type="StringName" />
@@ -478,6 +587,15 @@
 			<param index="2" name="constant" type="int" />
 			<description>
 				Creates or changes the value of the constant property defined by [param name] and [param theme_type]. Use [method clear_constant] to remove the property.
+			</description>
+		</method>
+		<method name="set_constant_array">
+			<return type="void" />
+			<param index="0" name="name" type="StringName" />
+			<param index="1" name="theme_type" type="StringName" />
+			<param index="2" name="constant_array" type="PackedInt32Array" />
+			<description>
+				Creates or changes the value of the [PackedInt32Array] property defined by [param name] and [param theme_type]. Use [method clear_constant_array] to remove the property.
 			</description>
 		</method>
 		<method name="set_font">
@@ -573,7 +691,13 @@
 		<constant name="DATA_TYPE_STYLEBOX" value="5" enum="DataType">
 			Theme's [StyleBox] item type.
 		</constant>
-		<constant name="DATA_TYPE_MAX" value="6" enum="DataType">
+		<constant name="DATA_TYPE_CONSTANT_ARRAY" value="6" enum="DataType">
+			Theme's constant array item type.
+		</constant>
+		<constant name="DATA_TYPE_COLOR_ARRAY" value="7" enum="DataType">
+			Theme's [PackedColorArray] item type.
+		</constant>
+		<constant name="DATA_TYPE_MAX" value="8" enum="DataType">
 			Maximum value for the DataType enum.
 		</constant>
 	</constants>
