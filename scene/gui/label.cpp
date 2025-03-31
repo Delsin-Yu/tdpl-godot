@@ -36,6 +36,7 @@
 #include "scene/gui/container.h"
 #include "scene/theme/theme_db.h"
 #include "servers/text_server.h"
+#include <cmath>
 
 void Label::set_autowrap_mode(TextServer::AutowrapMode p_mode) {
 	if (autowrap_mode == p_mode) {
@@ -880,25 +881,29 @@ void Label::_notification(int p_what) {
 						}
 
 						// Draw stacked shadow.
-						if (font_stacked_shadow_colors.size() != 0 && font_stacked_shadow_offset_xs.size() != 0 && font_stacked_shadow_offset_ys.size() != 0) {
-							int draw_iterations = MIN(font_stacked_shadow_offset_xs.size(), font_stacked_shadow_offset_ys.size());
-							draw_iterations = MIN(draw_iterations, font_stacked_shadow_colors.size());
+						if (font_stacked_shadow_colors.size() != 0) {
+							int draw_iterations = font_stacked_shadow_colors.size();
 
 							for (int draw_iteration_index = draw_iterations - 1; draw_iteration_index >= 0; --draw_iteration_index) {
 								Color font_stacked_shadow_color = font_stacked_shadow_colors[draw_iteration_index];
-
 								if (font_stacked_shadow_color.a == 0) {
 									continue;
 								}
 
-								Point2 font_stacked_shadow_offset = Point2(font_stacked_shadow_offset_xs[draw_iteration_index], font_stacked_shadow_offset_ys[draw_iteration_index]);
+								Point2 font_stacked_shadow_offset = Point2(0, 0);
+								if (draw_iteration_index < font_stacked_shadow_offset_xs.size()) {
+									font_stacked_shadow_offset.x = font_stacked_shadow_offset_xs[draw_iteration_index];
+								}
+								if (draw_iteration_index < font_stacked_shadow_offset_ys.size()) {
+									font_stacked_shadow_offset.y = font_stacked_shadow_offset_ys[draw_iteration_index];
+								}
+
 								int font_stacked_shadow_outline_size = 0;
 								if (draw_iteration_index < font_stacked_shadow_outline_sizes.size()) {
 									font_stacked_shadow_outline_size = font_stacked_shadow_outline_sizes[draw_iteration_index];
-								}
-
-								if (font_stacked_shadow_outline_size > 0) {
-									DRAW_TEXT(rtl, ellipsis_pos, ellipsis_gl_size, ellipsis_glyphs, trim_chars, para.start, visible_chars, trim_glyphs_ltr, processed_glyphs_step, processed_glyphs, visible_glyphs, trim_glyphs_rtl, total_glyphs, ci, ofs, gl_size, trim_pos, glyphs, font_stacked_shadow_color, draw_glyph_shadow_outline, font_stacked_shadow_outline_size, font_stacked_shadow_offset);
+									if (font_stacked_shadow_outline_size > 0) {
+										DRAW_TEXT(rtl, ellipsis_pos, ellipsis_gl_size, ellipsis_glyphs, trim_chars, para.start, visible_chars, trim_glyphs_ltr, processed_glyphs_step, processed_glyphs, visible_glyphs, trim_glyphs_rtl, total_glyphs, ci, ofs, gl_size, trim_pos, glyphs, font_stacked_shadow_color, draw_glyph_shadow_outline, font_stacked_shadow_outline_size, font_stacked_shadow_offset);
+									}
 								}
 
 								DRAW_TEXT(rtl, ellipsis_pos, ellipsis_gl_size, ellipsis_glyphs, trim_chars, para.start, visible_chars, trim_glyphs_ltr, processed_glyphs_step, processed_glyphs, visible_glyphs, trim_glyphs_rtl, total_glyphs, ci, ofs, gl_size, trim_pos, glyphs, font_stacked_shadow_color, draw_glyph_shadow, font_stacked_shadow_offset);
@@ -906,23 +911,32 @@ void Label::_notification(int p_what) {
 						}
 
 						// Draw stacked outline.
-						if (font_stacked_outline_colors.size() != 0 && font_stacked_outline_sizes.size() != 0) {
+						if (font_stacked_outline_sizes.size() != 0) {
 							int stacked_outline_draw_size = outline_size;
 
-							int draw_iterations = MIN(font_stacked_outline_colors.size(), font_stacked_outline_sizes.size());
+							int draw_iterations = font_stacked_outline_sizes.size();
+
 							for (int j = 0; j < draw_iterations; j++) {
-								if (font_stacked_outline_sizes[j] <= 0 || font_stacked_outline_colors[j].a == 0) {
-									continue;
+								if (j < font_stacked_outline_colors.size()) {
+									if (font_stacked_outline_colors[j].a == 0) {
+										continue;
+									}
 								}
 								stacked_outline_draw_size += font_stacked_outline_sizes[j];
 							}
 
 							for (int draw_iteration_index = draw_iterations - 1; draw_iteration_index >= 0; --draw_iteration_index) {
-								Color font_stacked_outline_color = font_stacked_outline_colors[draw_iteration_index];
 								int font_stacked_outline_size = font_stacked_outline_sizes[draw_iteration_index];
-
-								if (font_stacked_outline_color.a == 0 || font_stacked_outline_size <= 0) {
+								if (font_stacked_outline_size <= 0) {
 									continue;
+								}
+
+								Color font_stacked_outline_color = Color(0, 0, 0, 1);
+								if (draw_iteration_index < font_stacked_outline_colors.size()) {
+									font_stacked_outline_color = font_stacked_outline_colors[draw_iteration_index];
+									if (font_stacked_outline_color.a == 0) {
+										continue;
+									}
 								}
 
 								DRAW_TEXT(rtl, ellipsis_pos, ellipsis_gl_size, ellipsis_glyphs, trim_chars, para.start, visible_chars, trim_glyphs_ltr, processed_glyphs_step, processed_glyphs, visible_glyphs, trim_glyphs_rtl, total_glyphs, ci, ofs, gl_size, trim_pos, glyphs, font_stacked_outline_color, draw_glyph_outline, stacked_outline_draw_size);
