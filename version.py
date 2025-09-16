@@ -1,9 +1,9 @@
-short_name = "godot"
-name = "Godot Engine"
+short_name = "tdpl_godot"
+name = "Team Dichroic Purplion Build of Godot Engine"
 major = 4
 minor = 7
 patch = 0
-status = "stable"
+status = "a"
 module_config = ""
 website = "https://godotengine.org"
 docs = "4.7"
