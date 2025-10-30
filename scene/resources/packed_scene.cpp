@@ -33,6 +33,8 @@
 #include "core/config/engine.h"
 #include "core/io/missing_resource.h"
 #include "core/io/resource_loader.h"
+#include "core/object/object.h"
+#include "core/object/script_language.h"
 #include "core/templates/local_vector.h"
 #include "scene/2d/node_2d.h"
 #include "scene/gui/control.h"
@@ -164,6 +166,8 @@ Node *SceneState::instantiate(GenEditState p_edit_state) const {
 	HashMap<Ref<Resource>, Ref<Resource>> resources_local_to_scene;
 
 	LocalVector<DeferredNodePathProperties> deferred_node_paths;
+
+	LocalVector<Node *> pending_notify_nodes;
 
 	for (int i = 0; i < nc; i++) {
 		const NodeData &n = nd[i];
@@ -303,6 +307,7 @@ Node *SceneState::instantiate(GenEditState p_edit_state) const {
 			//properties
 			int nprop_count = n.properties.size();
 			if (nprop_count) {
+				pending_notify_nodes.push_back(node);
 				const NodeData::Property *nprops = &n.properties[0];
 
 				Dictionary missing_resource_properties;
@@ -645,6 +650,10 @@ Node *SceneState::instantiate(GenEditState p_edit_state) const {
 		if (ei) {
 			ret_nodes[0]->set_editable_instance(ei, true);
 		}
+	}
+
+	for (Node *node : pending_notify_nodes) {
+		node->notification(Node::NOTIFICATION_EXPORT_ASSIGNED);
 	}
 
 	return ret_nodes[0];

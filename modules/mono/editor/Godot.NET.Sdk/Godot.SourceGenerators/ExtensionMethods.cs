@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Godot.SourceGenerators
 {
@@ -16,6 +17,12 @@ namespace Godot.SourceGenerators
             this GeneratorExecutionContext context, string property, out string? value
         ) => context.AnalyzerConfigOptions.GlobalOptions
             .TryGetValue("build_property." + property, out value);
+
+        public static bool TryGetGlobalAnalyzerProperty(
+            this SuppressionAnalysisContext context, string property, out string? value
+        ) => context.Options.AnalyzerConfigOptionsProvider.GlobalOptions
+            .TryGetValue("build_property." + property, out value);
+
 
         public static bool AreGodotSourceGeneratorsDisabled(this GeneratorExecutionContext context)
             => context.TryGetGlobalAnalyzerProperty("GodotSourceGenerators", out string? toggle) &&
@@ -32,6 +39,16 @@ namespace Godot.SourceGenerators
             (context.TryGetGlobalAnalyzerProperty("GodotDisabledSourceGenerators", out string? disabledGenerators) &&
             disabledGenerators != null &&
             disabledGenerators.Split(';').Contains(generatorName));
+
+        public static bool IsGodotEnableExportNullChecks(this GeneratorExecutionContext context)
+            => context.TryGetGlobalAnalyzerProperty("GodotEnableExportNullChecks", out string? toggle) &&
+               toggle != null &&
+               toggle.Equals("true", StringComparison.OrdinalIgnoreCase);
+
+        public static bool IsGodotEnableExportNullChecks(this SuppressionAnalysisContext context)
+            => context.TryGetGlobalAnalyzerProperty("GodotEnableExportNullChecks", out string? toggle) &&
+               toggle != null &&
+               toggle.Equals("true", StringComparison.OrdinalIgnoreCase);
 
         public static bool InheritsFrom(this ITypeSymbol? symbol, string assemblyName, string typeFullName)
         {
