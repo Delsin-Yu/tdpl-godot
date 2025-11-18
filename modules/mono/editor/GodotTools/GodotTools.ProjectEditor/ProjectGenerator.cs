@@ -12,7 +12,7 @@ namespace GodotTools.ProjectEditor
     {
         public static string GodotSdkAttrValue => $"Godot.NET.Sdk/{GeneratedGodotNupkgsVersions.GodotNETSdk}";
 
-        public static string GodotMinimumRequiredTfm => "net8.0";
+        public static string GodotMinimumRequiredTfm => "net10.0";
 
         public static ProjectRootElement GenGameProject(string name)
         {
