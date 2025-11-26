@@ -36,7 +36,7 @@
 #include "core/extension/gdextension.h"
 #include "core/io/delta_encoding.h"
 #include "core/io/dir_access.h"
-#include "core/io/file_access_encrypted.h"
+#include "core/io/file_access_obfuscated.h"
 #include "core/io/file_access_pack.h" // PACK_HEADER_MAGIC, PACK_FORMAT_VERSION
 #include "core/io/image.h"
 #include "core/io/image_loader.h"
@@ -390,7 +390,7 @@ Error EditorExportPlatform::_encrypt_and_store_data(Ref<FileAccess> p_fd, const 
 		}
 	}
 
-	Ref<FileAccessEncrypted> fae;
+	Ref<FileAccessObfuscated> fae;
 	Ref<FileAccess> ftmp = p_fd;
 	if (r_encrypt) {
 		Vector<uint8_t> iv;
@@ -413,7 +413,7 @@ Error EditorExportPlatform::_encrypt_and_store_data(Ref<FileAccess> p_fd, const 
 		fae.instantiate();
 		ERR_FAIL_COND_V(fae.is_null(), ERR_FILE_CANT_OPEN);
 
-		Error err = fae->open_and_parse(ftmp, p_key, FileAccessEncrypted::MODE_WRITE_AES256, false, iv);
+		Error err = fae->open_and_parse(ftmp, FileAccessObfuscated::MODE_WRITE);
 		ERR_FAIL_COND_V(err != OK, ERR_FILE_CANT_OPEN);
 		ftmp = fae;
 	}
@@ -2214,7 +2214,7 @@ bool EditorExportPlatform::_store_header(Ref<FileAccess> p_fd, bool p_enc, bool 
 }
 
 bool EditorExportPlatform::_encrypt_and_store_directory(Ref<FileAccess> p_fd, PackData &p_pack_data, const Vector<uint8_t> &p_key, uint64_t p_seed, uint64_t p_file_base) {
-	Ref<FileAccessEncrypted> fae;
+	Ref<FileAccessObfuscated> fae;
 	Ref<FileAccess> fhead = p_fd;
 
 	fhead->store_32(p_pack_data.file_ofs.size()); //amount of files
@@ -2246,7 +2246,7 @@ bool EditorExportPlatform::_encrypt_and_store_directory(Ref<FileAccess> p_fd, Pa
 			}
 		}
 
-		Error err = fae->open_and_parse(fhead, p_key, FileAccessEncrypted::MODE_WRITE_AES256, false, iv);
+		Error err = fae->open_and_parse(fhead, FileAccessObfuscated::MODE_WRITE);
 		if (err != OK) {
 			return false;
 		}
