@@ -695,6 +695,7 @@ void ProjectExportDialog::_script_encryption_key_visibility_changed(bool p_visib
 }
 
 bool ProjectExportDialog::_validate_script_encryption_key(const String &p_key) {
+	return true;
 	bool is_valid = false;
 
 	if (!p_key.is_empty() && p_key.is_valid_hex_number(false) && p_key.length() == 64) {
@@ -1890,19 +1891,23 @@ ProjectExportDialog::ProjectExportDialog() {
 	script_key_error->set_focus_mode(Control::FOCUS_ACCESSIBILITY);
 	script_key_error->set_text(String::utf8("•  ") + TTR("Invalid Encryption Key (must be 64 hexadecimal characters long)"));
 	script_key_error->add_theme_color_override(SceneStringName(font_color), EditorNode::get_singleton()->get_editor_theme()->get_color(SNAME("error_color"), EditorStringName(Editor)));
-	sec_vb->add_margin_child(TTRC("Encryption Key (256-bits as hexadecimal):"), encryption_hb);
+	// sec_vb->add_margin_child(TTRC("Encryption Key (256-bits as hexadecimal):"), encryption_hb);
 	sec_vb->add_child(script_key_error);
+	script_key->hide();
+	script_key_error->hide();
 	sections->add_child(sec_scroll_container);
 
 	seed_input = memnew(LineEdit);
 	seed_input->set_accessibility_name(TTRC("Initialization vector seed"));
 	seed_input->connect(SceneStringName(text_changed), callable_mp(this, &ProjectExportDialog::_seed_input_changed));
-	sec_vb->add_margin_child(TTR("Initialization vector seed"), seed_input);
+	// sec_vb->add_margin_child(TTR("Initialization vector seed"), seed_input);
+	seed_input->hide();
 
 	Label *sec_info = memnew(Label);
 	sec_info->set_focus_mode(Control::FOCUS_ACCESSIBILITY);
 	sec_info->set_text(TTR("Note: Encryption key needs to be stored in the binary,\nyou need to build the export templates from source."));
 	sec_vb->add_child(sec_info);
+	sec_info->hide();
 
 	LinkButton *sec_more_info = memnew(LinkButton);
 	sec_more_info->set_text(TTR("More Info..."));

@@ -30,7 +30,7 @@
 
 #include "file_access_pack.h"
 
-#include "core/io/file_access_encrypted.h"
+#include "core/io/file_access_obfuscated.h"
 #include "core/io/file_access_patched.h"
 #include "core/object/script_language.h"
 #include "core/os/os.h"
@@ -318,7 +318,7 @@ bool PackedSourcePCK::try_open_pack(const String &p_path, bool p_replace_files, 
 	// Read directory.
 	int file_count = f->get_32();
 	if (enc_directory) {
-		Ref<FileAccessEncrypted> fae;
+		Ref<FileAccessObfuscated> fae;
 		fae.instantiate();
 		ERR_FAIL_COND_V_MSG(fae.is_null(), false, "Can't open encrypted pack directory.");
 
@@ -328,7 +328,7 @@ bool PackedSourcePCK::try_open_pack(const String &p_path, bool p_replace_files, 
 			key.write[i] = script_encryption_key[i];
 		}
 
-		Error err = fae->open_and_parse(f, key, FileAccessEncrypted::MODE_READ, false);
+		Error err = fae->open_and_parse(f, FileAccessObfuscated::MODE_READ);
 		ERR_FAIL_COND_V_MSG(err, false, "Can't open encrypted pack directory.");
 		f = fae;
 	}
@@ -523,7 +523,7 @@ FileAccessPack::FileAccessPack(const String &p_path, const PackedData::PackedFil
 	}
 
 	if (pf.encrypted) {
-		Ref<FileAccessEncrypted> fae;
+		Ref<FileAccessObfuscated> fae;
 		fae.instantiate();
 		ERR_FAIL_COND_MSG(fae.is_null(), vformat(R"(Can't open encrypted pack-referenced file "%s" from pack "%s".)", p_path, pf.pack));
 
@@ -533,8 +533,8 @@ FileAccessPack::FileAccessPack(const String &p_path, const PackedData::PackedFil
 			key.write[i] = script_encryption_key[i];
 		}
 
-		Error err = fae->open_and_parse(f, key, FileAccessEncrypted::MODE_READ, false);
-		ERR_FAIL_COND_MSG(err, vformat(R"(Can't open encrypted pack-referenced file "%s" from pack "%s".)", p_path, pf.pack));
+		Error err = fae->open_and_parse(f, FileAccessObfuscated::MODE_READ);
+		ERR_FAIL_COND_MSG(err, vformat(R"(Can't open obfuscated pack-referenced file "%s" from pack "%s".)", p_path, pf.pack));
 		f = fae;
 		off = 0;
 	}
