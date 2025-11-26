@@ -34,7 +34,7 @@
 #include "core/config/project_settings.h"
 #include "core/crypto/crypto_core.h"
 #include "core/io/file_access_compressed.h"
-#include "core/io/file_access_encrypted.h"
+#include "core/io/file_access_obfuscated.h"
 #include "core/io/file_access_pack.h"
 #include "core/io/marshalls.h"
 #include "core/io/resource_uid.h"
@@ -200,9 +200,9 @@ Ref<FileAccess> FileAccess::open_encrypted(const String &p_path, ModeFlags p_mod
 		return fa;
 	}
 
-	Ref<FileAccessEncrypted> fae;
+	Ref<FileAccessObfuscated> fae;
 	fae.instantiate();
-	Error err = fae->open_and_parse(fa, p_key, (p_mode_flags == WRITE) ? FileAccessEncrypted::MODE_WRITE_AES256 : FileAccessEncrypted::MODE_READ, true, p_iv);
+	Error err = fae->open_and_parse(fa, (p_mode_flags == WRITE) ? FileAccessObfuscated::MODE_WRITE : FileAccessObfuscated::MODE_READ);
 	last_file_open_error = err;
 	if (err) {
 		return Ref<FileAccess>();
@@ -216,9 +216,9 @@ Ref<FileAccess> FileAccess::open_encrypted_pass(const String &p_path, ModeFlags 
 		return fa;
 	}
 
-	Ref<FileAccessEncrypted> fae;
+	Ref<FileAccessObfuscated> fae;
 	fae.instantiate();
-	Error err = fae->open_and_parse_password(fa, p_pass, (p_mode_flags == WRITE) ? FileAccessEncrypted::MODE_WRITE_AES256 : FileAccessEncrypted::MODE_READ);
+	Error err = fae->open_and_parse(fa, (p_mode_flags == WRITE) ? FileAccessObfuscated::MODE_WRITE : FileAccessObfuscated::MODE_READ);
 	last_file_open_error = err;
 	if (err) {
 		return Ref<FileAccess>();
