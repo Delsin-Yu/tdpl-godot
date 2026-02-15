@@ -384,6 +384,10 @@ void godotsharp_string_name_new_from_string(StringName *r_dest, const String *p_
 	memnew_placement(r_dest, StringName(*p_name));
 }
 
+void godotsharp_string_name_new_from_utf8(StringName *r_dest, const char *p_ut8_name) {
+	memnew_placement(r_dest, StringName(p_ut8_name));
+}
+
 void godotsharp_node_path_new_from_string(NodePath *r_dest, const String *p_name) {
 	memnew_placement(r_dest, NodePath(*p_name));
 }
@@ -1647,6 +1651,7 @@ static const void *unmanaged_callbacks[]{
 	(void *)godotsharp_ref_new_from_ref_counted_ptr,
 	(void *)godotsharp_ref_destroy,
 	(void *)godotsharp_string_name_new_from_string,
+	(void *)godotsharp_string_name_new_from_utf8,
 	(void *)godotsharp_node_path_new_from_string,
 	(void *)godotsharp_string_name_as_string,
 	(void *)godotsharp_node_path_as_string,

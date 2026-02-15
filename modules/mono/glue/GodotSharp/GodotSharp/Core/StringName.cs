@@ -75,6 +75,27 @@ namespace Godot
         }
 
         /// <summary>
+        /// Constructs a <see cref="StringName"/> from the given UTF-8 string literal.
+        /// </summary>
+        /// <remarks>
+        /// This method is designed to be used with UTF-8 string literals (C# 11.0+).
+        /// Example usage: <c>StringName.FromUtf8Literal("my_name"u8)</c>
+        /// This avoids the marshaling overhead of converting from UTF-16 to UTF-8.
+        ///
+        /// WARNING: The ReadOnlySpan&lt;byte&gt; must point to a read-only memory region
+        /// (such as a UTF-8 string literal in the data section of the program).
+        /// Do not pass dynamically allocated memory or temporary buffers.
+        /// </remarks>
+        /// <param name="utf8Name">UTF-8 encoded string as ReadOnlySpan&lt;byte&gt; pointing to read-only memory.</param>
+        public static StringName FromUtf8Literal(ReadOnlySpan<byte> utf8Name)
+        {
+            if (utf8Name.IsEmpty)
+                return new StringName();
+
+            return new StringName(NativeFuncs.godotsharp_string_name_new_from_utf8(utf8Name));
+        }
+
+        /// <summary>
         /// Converts a string to a <see cref="StringName"/>.
         /// </summary>
         /// <param name="from">The string to convert.</param>

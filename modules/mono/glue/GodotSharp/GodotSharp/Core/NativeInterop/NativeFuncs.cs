@@ -115,6 +115,9 @@ namespace Godot.NativeInterop
         public static partial void godotsharp_string_name_new_from_string(out godot_string_name r_dest,
             scoped in godot_string p_name);
 
+        public static partial void godotsharp_string_name_new_from_utf8(out godot_string_name r_dest,
+            byte* p_utf8_name);
+
         public static partial void godotsharp_node_path_new_from_string(out godot_node_path r_dest,
             scoped in godot_string p_name);
 

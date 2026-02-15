@@ -207,9 +207,9 @@ namespace Godot.SourceGenerators
 
                 source.Append("        public new static readonly global::Godot.StringName @");
                 source.Append(signalName);
-                source.Append(" = \"");
+                source.Append(" = global::Godot.StringName.FromUtf8Literal(\"");
                 source.Append(signalName);
-                source.Append("\";\n");
+                source.Append("\"u8);\n");
             }
 
             source.Append("    }\n"); // class GodotInternal

@@ -2330,9 +2330,9 @@ Error BindingsGenerator::_generate_cs_type(const TypeInterface &itype, const Str
 		output << MEMBER_BEGIN "private static readonly System.Type CachedType = typeof(" << itype.proxy_name << ");\n";
 	}
 
-	output.append(MEMBER_BEGIN "private static readonly StringName " BINDINGS_NATIVE_NAME_FIELD " = \"");
+	output.append(MEMBER_BEGIN "private static readonly StringName " BINDINGS_NATIVE_NAME_FIELD " = StringName.FromUtf8Literal(\"");
 	output.append(itype.name);
-	output.append("\";\n");
+	output.append("\"u8);\n");
 
 	if (itype.is_singleton || itype.is_compat_singleton) {
 		// Add the Singleton static property.
@@ -2447,7 +2447,7 @@ Error BindingsGenerator::_generate_cs_type(const TypeInterface &itype, const Str
 				   << INDENT1 "[DebuggerBrowsable(DebuggerBrowsableState.Never)]\n"
 				   << INDENT1 "private static readonly StringName "
 				   << CS_STATIC_FIELD_METHOD_PROXY_NAME_PREFIX << imethod.name
-				   << " = \"" << imethod.proxy_name << "\";\n";
+				   << " = StringName.FromUtf8Literal(\"" << imethod.proxy_name << "\"u8);\n";
 		}
 
 		// Generate signal names cache fields
@@ -2457,7 +2457,7 @@ Error BindingsGenerator::_generate_cs_type(const TypeInterface &itype, const Str
 				   << INDENT1 "[DebuggerBrowsable(DebuggerBrowsableState.Never)]\n"
 				   << INDENT1 "private static readonly StringName "
 				   << CS_STATIC_FIELD_SIGNAL_PROXY_NAME_PREFIX << isignal.name
-				   << " = \"" << isignal.proxy_name << "\";\n";
+				   << " = StringName.FromUtf8Literal(\"" << isignal.proxy_name << "\"u8);\n";
 		}
 
 		// TODO: Only generate HasGodotClassMethod and InvokeGodotClassMethod if there's any method

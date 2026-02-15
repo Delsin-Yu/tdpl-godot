@@ -2,6 +2,8 @@
 #pragma warning disable IDE1006 // Naming rule violation
 // ReSharper disable InconsistentNaming
 
+using System;
+
 namespace Godot.NativeInterop
 {
     public static partial class NativeFuncs
@@ -93,6 +95,20 @@ namespace Godot.NativeInterop
             using godot_string src = Marshaling.ConvertStringToNative(name);
             godotsharp_string_name_new_from_string(out godot_string_name ret, src);
             return ret;
+        }
+
+        public static unsafe godot_string_name godotsharp_string_name_new_from_utf8(ReadOnlySpan<byte> utf8Name)
+        {
+            if (utf8Name.IsEmpty)
+            {
+                return default;
+            }
+
+            fixed (byte* ptr = utf8Name)
+            {
+                godotsharp_string_name_new_from_utf8(out godot_string_name ret, ptr);
+                return ret;
+            }
         }
 
         public static godot_node_path godotsharp_node_path_new_from_string(string name)
