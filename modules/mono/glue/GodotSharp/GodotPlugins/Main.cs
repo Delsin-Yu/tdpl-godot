@@ -151,6 +151,7 @@ namespace GodotPlugins
                 string loadedAssemblyPath = _projectLoadContext.AssemblyLoadedPath ?? assemblyPath;
                 *outLoadedAssemblyPath = Marshaling.ConvertStringToNative(loadedAssemblyPath);
 
+                ScriptManagerBridge.RegisterAssemblyDocumentationPath(projectAssembly, loadedAssemblyPath);
                 ScriptManagerBridge.LookupScriptsInAssembly(projectAssembly);
 
                 return godot_bool.True;

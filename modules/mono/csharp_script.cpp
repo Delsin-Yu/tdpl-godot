@@ -58,7 +58,6 @@
 #include "servers/text_server.h"
 
 #ifdef TOOLS_ENABLED
-#include "core/os/keyboard.h"
 #include "editor/docks/inspector_dock.h"
 #include "editor/docks/node_dock.h"
 #include "editor/editor_node.h"
@@ -2135,14 +2134,12 @@ void CSharpScript::get_docs(Ref<CSharpScript> p_script) {
 	Dictionary class_doc_dict;
 	class_doc_dict.~Dictionary();
 
-	GDMonoCache::managed_callbacks.ScriptManagerBridge_GetDocs(p_script.ptr(), &class_doc_dict);
+	bool got_docs = GDMonoCache::managed_callbacks.ScriptManagerBridge_GetDocs(p_script.ptr(), &class_doc_dict);
+	ERR_FAIL_COND_MSG(!got_docs, "Failed to load C# script documentation XML.");
 
 	p_script->docs.clear();
 
-	if (class_doc_dict.is_empty()) {
-		// Script has no docs.
-		return;
-	}
+	ERR_FAIL_COND_MSG(class_doc_dict.is_empty(), "C# script documentation is empty.");
 
 	String inherits;
 	Ref<CSharpScript> base = p_script->get_base_script();

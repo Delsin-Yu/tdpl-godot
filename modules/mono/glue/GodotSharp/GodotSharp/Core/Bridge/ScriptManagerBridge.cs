@@ -5,14 +5,16 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
-using System.Runtime.Serialization;
-using System.Text;
+using System.Globalization;
 using Godot.NativeInterop;
+using ReflectionFieldInfo = System.Reflection.FieldInfo;
+using ReflectionPropertyInfo = System.Reflection.PropertyInfo;
 
 namespace Godot.Bridge
 {
@@ -75,6 +77,32 @@ namespace Godot.Bridge
 
         private static ConcurrentDictionary<IntPtr, (string? assemblyName, string classFullName)>
             _scriptDataForReload = new();
+
+        private sealed class XmlDocumentationCache
+        {
+            public XmlDocumentationCache(Dictionary<string, System.Xml.Linq.XElement> members)
+            {
+                Members = members;
+            }
+
+            public Dictionary<string, System.Xml.Linq.XElement> Members { get; }
+        }
+
+        private sealed class AssemblyXmlDocumentationPath
+        {
+            public AssemblyXmlDocumentationPath(string xmlPath)
+            {
+                XmlPath = xmlPath;
+            }
+
+            public string XmlPath { get; }
+        }
+
+        private static readonly ConcurrentDictionary<string, XmlDocumentationCache> _xmlDocumentationCacheByPath =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        private static readonly ConditionalWeakTable<Assembly, AssemblyXmlDocumentationPath> _xmlDocPathByAssembly =
+            new();
 
         [UnmanagedCallersOnly]
         internal static void FrameCallback()
@@ -368,13 +396,27 @@ namespace Godot.Bridge
             }
         }
 
+        // Called from GodotPlugins.
+        public static void RegisterAssemblyDocumentationPath(Assembly assembly, string? assemblyPath)
+        {
+            if (string.IsNullOrEmpty(assemblyPath))
+                return;
+
+            string xmlPath = Path.ChangeExtension(assemblyPath, ".xml");
+            if (!File.Exists(xmlPath))
+                return;
+
+            _xmlDocPathByAssembly.Remove(assembly);
+            _xmlDocPathByAssembly.Add(assembly, new AssemblyXmlDocumentationPath(xmlPath));
+        }
+
         [UnmanagedCallersOnly]
-        internal static unsafe void RaiseEventSignal(IntPtr ownerGCHandlePtr,
+        internal static unsafe void RaiseEventSignal(IntPtr ownerGcHandlePtr,
             godot_string_name* eventSignalName, godot_variant** args, int argCount, godot_bool* outOwnerIsNull)
         {
             try
             {
-                var owner = (GodotObject?)GCHandle.FromIntPtr(ownerGCHandlePtr).Target;
+                var owner = (GodotObject?)GCHandle.FromIntPtr(ownerGcHandlePtr).Target;
 
                 if (owner == null)
                 {
@@ -429,7 +471,7 @@ namespace Godot.Bridge
             }
         }
 
-        private static unsafe bool AddScriptBridgeCore(IntPtr scriptPtr, string scriptPath)
+        private static bool AddScriptBridgeCore(IntPtr scriptPtr, string scriptPath)
         {
             _scriptTypeBiMap.ReadWriteLock.EnterUpgradeableReadLock();
             try
@@ -773,7 +815,6 @@ namespace Godot.Bridge
                 // Performance is not critical here as this will be replaced with source generators.
                 using var methods = new Collections.Array();
 
-                Type? top = scriptType;
                 if (scriptType != native)
                 {
                     var methodList = GetMethodListForType(scriptType);
@@ -836,7 +877,7 @@ namespace Godot.Bridge
 
                 Collections.Dictionary rpcFunctions = new();
 
-                top = scriptType;
+                Type? top = scriptType;
 
                 while (top != null && top != native)
                 {
@@ -943,35 +984,357 @@ namespace Godot.Bridge
             }
         }
 
+        private static XmlDocumentationCache LoadXmlDocumentationCache(string xmlPath)
+            => new(XmlDocumentationBbCode.LoadMembersFromFile(xmlPath));
+
+        private static XmlDocumentationCache? GetXmlDocumentationCache(Assembly assembly)
+        {
+            static bool TryGetXmlPathFromAssemblyLocation(Assembly targetAssembly, out string? xmlPath)
+            {
+                string assemblyPath = targetAssembly.Location;
+                if (!string.IsNullOrEmpty(assemblyPath))
+                {
+                    string candidate = Path.ChangeExtension(assemblyPath, ".xml");
+                    if (File.Exists(candidate))
+                    {
+                        xmlPath = candidate;
+                        return true;
+                    }
+                }
+
+                xmlPath = null;
+                return false;
+            }
+
+            if (_xmlDocPathByAssembly.TryGetValue(assembly, out AssemblyXmlDocumentationPath? knownPath) &&
+                File.Exists(knownPath.XmlPath))
+            {
+                return _xmlDocumentationCacheByPath.GetOrAdd(knownPath.XmlPath, LoadXmlDocumentationCache);
+            }
+
+            if (TryGetXmlPathFromAssemblyLocation(assembly, out string? resolvedXmlPath))
+                return _xmlDocumentationCacheByPath.GetOrAdd(resolvedXmlPath!, LoadXmlDocumentationCache);
+
+            string? assemblySimpleName = assembly.GetName().Name;
+            if (string.IsNullOrEmpty(assemblySimpleName))
+                return null;
+
+            string[] probeDirectories =
+            {
+                AppContext.BaseDirectory,
+                System.Environment.CurrentDirectory,
+            };
+
+            foreach (string probeDirectory in probeDirectories)
+            {
+                if (string.IsNullOrEmpty(probeDirectory))
+                    continue;
+
+                string candidate = Path.Combine(probeDirectory, assemblySimpleName + ".xml");
+                if (File.Exists(candidate))
+                    return _xmlDocumentationCacheByPath.GetOrAdd(candidate, LoadXmlDocumentationCache);
+            }
+
+            return null;
+        }
+
+        private static string? TryGetDocTag(
+            XmlDocumentationCache? cache,
+            Type contextType,
+            string memberId,
+            string tagName,
+            Func<string?>? implicitInheritResolver = null,
+            HashSet<string>? visited = null)
+        {
+            if (cache == null)
+                return null;
+
+            return XmlDocumentationBbCode.TryGetTagBbCode(
+                cache.Members,
+                contextType,
+                memberId,
+                tagName,
+                implicitInheritResolver,
+                visited);
+        }
+
+        private static string GetPropertyDocTypeName(Type type)
+        {
+            if (type.IsEnum)
+                return "int";
+
+            return Type.GetTypeCode(type) switch
+            {
+                TypeCode.Boolean => "bool",
+                TypeCode.Char => "int",
+                TypeCode.SByte => "int",
+                TypeCode.Byte => "int",
+                TypeCode.Int16 => "int",
+                TypeCode.UInt16 => "int",
+                TypeCode.Int32 => "int",
+                TypeCode.UInt32 => "int",
+                TypeCode.Int64 => "int",
+                TypeCode.UInt64 => "int",
+                TypeCode.Single => "float",
+                TypeCode.Double => "float",
+                TypeCode.String => "String",
+                _ => type == typeof(Variant) ? "Variant" : type.Name,
+            };
+        }
+
+        private static string? FindInheritedPropertyDocumentationId(ReflectionPropertyInfo property)
+        {
+            Type? baseType = property.DeclaringType?.BaseType;
+
+            while (baseType != null)
+            {
+                ReflectionPropertyInfo? inherited = baseType.GetProperty(property.Name,
+                    BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+
+                if (inherited != null)
+                    return XmlDocumentationBbCode.GetPropertyDocumentationId(inherited);
+
+                baseType = baseType.BaseType;
+            }
+
+            return null;
+        }
+
+        private static string? FindInheritedFieldDocumentationId(ReflectionFieldInfo field)
+        {
+            Type? baseType = field.DeclaringType?.BaseType;
+
+            while (baseType != null)
+            {
+                ReflectionFieldInfo? inherited = baseType.GetField(field.Name,
+                    BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+
+                if (inherited != null)
+                    return XmlDocumentationBbCode.GetFieldDocumentationId(inherited);
+
+                baseType = baseType.BaseType;
+            }
+
+            return null;
+        }
+
         [UnmanagedCallersOnly]
-        internal static unsafe void GetDocs(IntPtr scriptPtr, godot_dictionary* outClassDocDest)
+        internal static unsafe godot_bool GetDocs(IntPtr scriptPtr, godot_dictionary* outClassDocDest)
         {
             try
             {
                 var scriptType = _scriptTypeBiMap.GetScriptType(scriptPtr);
 
-                var getGetGodotClassDocsMethod = scriptType.GetMethod(
-                    "GetGodotClassDocs",
-                    BindingFlags.DeclaredOnly | BindingFlags.Static |
-                    BindingFlags.NonPublic | BindingFlags.Public);
-                if (getGetGodotClassDocsMethod == null)
+                bool hasScriptPath = _pathTypeBiMap.TryGetScriptPath(scriptType, out string? scriptPath) &&
+                    !string.IsNullOrEmpty(scriptPath);
+
+                if (!hasScriptPath)
                 {
-                    *outClassDocDest = NativeFuncs.godotsharp_dictionary_new();
-                    return;
+                    string assemblyName = scriptType.Assembly.GetName().Name ?? "UnknownAssembly";
+                    string typeName = scriptType.FullName ?? scriptType.Name;
+                    scriptPath = $"csharp://{assemblyName}/{typeName}";
+                }
+
+                XmlDocumentationCache? xmlDocs = GetXmlDocumentationCache(scriptType.Assembly);
+
+                string typeDocId = XmlDocumentationBbCode.GetTypeDocumentationId(scriptType);
+
+                string? briefDescription = TryGetDocTag(xmlDocs, scriptType, typeDocId, "summary",
+                    implicitInheritResolver: () => scriptType.BaseType != null ? XmlDocumentationBbCode.GetTypeDocumentationId(scriptType.BaseType) : null);
+
+                string? remarksDescription = TryGetDocTag(xmlDocs, scriptType, typeDocId, "remarks",
+                    implicitInheritResolver: () => scriptType.BaseType != null ? XmlDocumentationBbCode.GetTypeDocumentationId(scriptType.BaseType) : null);
+
+                string fullDescription = briefDescription ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(remarksDescription))
+                {
+                    if (!string.IsNullOrWhiteSpace(fullDescription))
+                        fullDescription += "[br][br]";
+                    fullDescription += remarksDescription;
+                }
+
+                using var docs = new Collections.Dictionary();
+
+                bool isGlobalClass = scriptType.IsDefined(typeof(GlobalClassAttribute), inherit: false);
+                string classDocName;
+
+                if (isGlobalClass)
+                {
+                    classDocName = scriptType.Name;
+                }
+                else if (hasScriptPath)
+                {
+                    classDocName = scriptType.IsNested
+                        ? $"\"{scriptPath}\".{scriptType.Name}"
+                        : $"\"{scriptPath}\"";
                 }
                 else
                 {
-                    using Collections.Dictionary? classDocsObj = (Collections.Dictionary?)getGetGodotClassDocsMethod.Invoke(null, null);
-                    if (classDocsObj != null)
-                    {
-                        *outClassDocDest = NativeFuncs.godotsharp_dictionary_new_copy((godot_dictionary)classDocsObj.NativeValue);
-                    }
+                    classDocName = scriptType.FullName ?? scriptType.Name;
                 }
+
+                docs.Add("name", classDocName);
+                docs.Add("brief_description", briefDescription ?? string.Empty);
+                docs.Add("description", fullDescription);
+
+                var exportedProperties = scriptType
+                    .GetProperties(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                    .Where(p => p.IsDefined(typeof(ExportAttribute), inherit: false))
+                    .ToArray();
+
+                var exportedFields = scriptType
+                    .GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                    .Where(f => !f.IsSpecialName && f.IsDefined(typeof(ExportAttribute), inherit: false))
+                    .ToArray();
+
+                var enumTypes = new HashSet<Type>();
+                using var propertyDocs = new Collections.Array();
+
+                foreach (ReflectionPropertyInfo property in exportedProperties)
+                {
+                    Type propertyType = property.PropertyType;
+                    if (propertyType.IsEnum)
+                        enumTypes.Add(propertyType);
+
+                    string propertyDocId = XmlDocumentationBbCode.GetPropertyDocumentationId(property);
+                    string? propertyDescription = TryGetDocTag(xmlDocs, scriptType, propertyDocId, "summary",
+                        implicitInheritResolver: () => FindInheritedPropertyDocumentationId(property));
+
+                    var propertyDoc = new Collections.Dictionary
+                    {
+                        { "name", property.Name },
+                        { "type", GetPropertyDocTypeName(propertyType) },
+                    };
+
+                    if (propertyType.IsEnum)
+                    {
+                        propertyDoc["enumeration"] = propertyType.Name;
+                        if (propertyType.IsDefined(typeof(FlagsAttribute), inherit: false))
+                            propertyDoc["is_bitfield"] = true;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(propertyDescription))
+                        propertyDoc["description"] = propertyDescription;
+
+                    propertyDocs.Add(propertyDoc);
+                }
+
+                foreach (ReflectionFieldInfo field in exportedFields)
+                {
+                    Type fieldType = field.FieldType;
+                    if (fieldType.IsEnum)
+                        enumTypes.Add(fieldType);
+
+                    string fieldDocId = XmlDocumentationBbCode.GetFieldDocumentationId(field);
+                    string? fieldDescription = TryGetDocTag(xmlDocs, scriptType, fieldDocId, "summary",
+                        implicitInheritResolver: () => FindInheritedFieldDocumentationId(field));
+
+                    var propertyDoc = new Collections.Dictionary
+                    {
+                        { "name", field.Name },
+                        { "type", GetPropertyDocTypeName(fieldType) },
+                    };
+
+                    if (fieldType.IsEnum)
+                    {
+                        propertyDoc["enumeration"] = fieldType.Name;
+                        if (fieldType.IsDefined(typeof(FlagsAttribute), inherit: false))
+                            propertyDoc["is_bitfield"] = true;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(fieldDescription))
+                        propertyDoc["description"] = fieldDescription;
+
+                    propertyDocs.Add(propertyDoc);
+                }
+
+                if (propertyDocs.Count > 0)
+                    docs.Add("properties", propertyDocs);
+
+                using var signalDocs = new Collections.Array();
+
+                Type[] nestedSignalTypes = scriptType.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
+                    .Where(t => t.IsDefined(typeof(SignalAttribute), inherit: false) && typeof(MulticastDelegate).IsAssignableFrom(t.BaseType))
+                    .ToArray();
+
+                foreach (Type signalType in nestedSignalTypes)
+                {
+                    string signalName = signalType.Name.EndsWith("EventHandler", StringComparison.Ordinal)
+                        ? signalType.Name.Substring(0, signalType.Name.Length - "EventHandler".Length)
+                        : signalType.Name;
+
+                    string signalDocId = XmlDocumentationBbCode.GetTypeDocumentationId(signalType);
+                    string? signalDescription = TryGetDocTag(xmlDocs, scriptType, signalDocId, "summary");
+
+                    var signalDoc = new Collections.Dictionary
+                    {
+                        { "name", signalName },
+                    };
+
+                    if (!string.IsNullOrWhiteSpace(signalDescription))
+                        signalDoc["description"] = signalDescription;
+
+                    signalDocs.Add(signalDoc);
+                }
+
+                if (signalDocs.Count > 0)
+                    docs.Add("signals", signalDocs);
+
+                if (enumTypes.Count > 0)
+                {
+                    using var enumDocs = new Collections.Dictionary();
+                    using var constantDocs = new Collections.Array();
+
+                    foreach (Type enumType in enumTypes)
+                    {
+                        string enumDocId = XmlDocumentationBbCode.GetTypeDocumentationId(enumType);
+                        string? enumDescription = TryGetDocTag(xmlDocs, scriptType, enumDocId, "summary");
+
+                        var enumDoc = new Collections.Dictionary();
+                        if (!string.IsNullOrWhiteSpace(enumDescription))
+                            enumDoc["description"] = enumDescription;
+
+                        enumDocs[enumType.Name] = enumDoc;
+
+                        bool isBitfield = enumType.IsDefined(typeof(FlagsAttribute), inherit: false);
+                        foreach (ReflectionFieldInfo enumField in enumType.GetFields(BindingFlags.Public | BindingFlags.Static))
+                        {
+                            string enumFieldDocId = XmlDocumentationBbCode.GetFieldDocumentationId(enumField);
+                            string? enumFieldDescription = TryGetDocTag(xmlDocs, scriptType, enumFieldDocId, "summary");
+
+                            var constantDoc = new Collections.Dictionary
+                            {
+                                { "name", enumField.Name },
+                                { "value", Convert.ToInt64(enumField.GetRawConstantValue(), CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture) },
+                                { "enumeration", enumType.Name },
+                                { "is_bitfield", isBitfield },
+                            };
+
+                            if (!string.IsNullOrWhiteSpace(enumFieldDescription))
+                                constantDoc["description"] = enumFieldDescription;
+
+                            constantDocs.Add(constantDoc);
+                        }
+                    }
+
+                    if (enumDocs.Count > 0)
+                        docs.Add("enums", enumDocs);
+
+                    if (constantDocs.Count > 0)
+                        docs.Add("constants", constantDocs);
+                }
+
+                docs.Add("is_script_doc", hasScriptPath);
+                docs.Add("script_path", scriptPath ?? string.Empty);
+
+                *outClassDocDest = NativeFuncs.godotsharp_dictionary_new_copy((godot_dictionary)docs.NativeValue);
+                return godot_bool.True;
             }
             catch (Exception e)
             {
                 ExceptionUtils.LogException(e);
                 *outClassDocDest = NativeFuncs.godotsharp_dictionary_new();
+                return godot_bool.False;
             }
         }
 
@@ -1304,35 +1667,35 @@ namespace Godot.Bridge
         }
 
         [UnmanagedCallersOnly]
-        internal static unsafe godot_bool SwapGCHandleForType(IntPtr oldGCHandlePtr, IntPtr* outNewGCHandlePtr,
+        internal static unsafe godot_bool SwapGcHandleForType(IntPtr oldGcHandlePtr, IntPtr* outNewGcHandlePtr,
             godot_bool createWeak)
         {
             try
             {
-                var oldGCHandle = GCHandle.FromIntPtr(oldGCHandlePtr);
+                var oldGcHandle = GCHandle.FromIntPtr(oldGcHandlePtr);
 
-                object? target = oldGCHandle.Target;
+                object? target = oldGcHandle.Target;
 
                 if (target == null)
                 {
-                    CustomGCHandle.Free(oldGCHandle);
-                    *outNewGCHandlePtr = IntPtr.Zero;
+                    CustomGCHandle.Free(oldGcHandle);
+                    *outNewGcHandlePtr = IntPtr.Zero;
                     return godot_bool.False; // Called after the managed side was collected, so nothing to do here
                 }
 
                 // Release the current weak handle and replace it with a strong handle.
-                var newGCHandle = createWeak.ToBool() ?
+                var newGcHandle = createWeak.ToBool() ?
                     CustomGCHandle.AllocWeak(target) :
                     CustomGCHandle.AllocStrong(target);
 
-                CustomGCHandle.Free(oldGCHandle);
-                *outNewGCHandlePtr = GCHandle.ToIntPtr(newGCHandle);
+                CustomGCHandle.Free(oldGcHandle);
+                *outNewGcHandlePtr = GCHandle.ToIntPtr(newGcHandle);
                 return godot_bool.True;
             }
             catch (Exception e)
             {
                 ExceptionUtils.LogException(e);
-                *outNewGCHandlePtr = IntPtr.Zero;
+                *outNewGcHandlePtr = IntPtr.Zero;
                 return godot_bool.False;
             }
         }

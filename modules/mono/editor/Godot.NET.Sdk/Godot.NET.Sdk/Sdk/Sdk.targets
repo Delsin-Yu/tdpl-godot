@@ -21,7 +21,22 @@
     <DefineConstants Condition=" '$(Configuration)' == 'Debug' ">$(DefineConstants);TOOLS</DefineConstants>
 
     <DefineConstants>$(GodotDefineConstants);$(DefineConstants)</DefineConstants>
+
+    <!--
+    Always emit XML documentation so editor/runtime script docs can be resolved from the assembly XML file.
+    -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile Condition=" '$(DocumentationFile)' == '' ">$(OutputPath)$(AssemblyName).xml</DocumentationFile>
   </PropertyGroup>
+
+  <Target Name="GodotValidateXmlDocumentationFile"
+          AfterTargets="CoreCompile"
+          Condition=" '$(DesignTimeBuild)' != 'true' ">
+    <Error Condition=" '$(DocumentationFile)' == '' "
+           Text="Godot requires XML documentation output. Property 'DocumentationFile' is empty for '$(MSBuildProjectFullPath)'." />
+    <Error Condition=" !Exists('$(DocumentationFile)') "
+           Text="Godot requires XML documentation output but the file was not generated: '$(DocumentationFile)'. Ensure XML documentation generation is not disabled." />
+  </Target>
 
   <!-- C# source generators -->
   <ItemGroup Condition=" '$(DisableImplicitGodotGeneratorReferences)' != 'true' ">
