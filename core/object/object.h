@@ -859,6 +859,10 @@ public:
 		NOTIFICATION_PREDELETE_CLEANUP = 3,
 		// Notification sent when all of the exported variables have been assigned after resource load or scene instantiation.
 		NOTIFICATION_EXPORT_ASSIGNED = 4,
+		// Notification sent before the current script instance gets unloded.
+		NOTIFICATION_BEFORE_UNLOAD_SCRIPT = 5,
+		// Notification sent after the current script instance gets loaded.
+		NOTIFICATION_AFTER_LOAD_SCRIPT = 6,
 	};
 
 	/* TYPE API */
