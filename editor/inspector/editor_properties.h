@@ -247,7 +247,6 @@ public:
 
 class EditorPropertyEnum : public EditorProperty {
 	GDCLASS(EditorPropertyEnum, EditorProperty);
-	OptionButton *options = nullptr;
 
 	void _option_selected(int p_which);
 
@@ -255,6 +254,7 @@ protected:
 	virtual void _set_read_only(bool p_read_only) override;
 
 public:
+	OptionButton *options = nullptr;
 	void setup(const Vector<String> &p_options);
 	virtual void update_property() override;
 	void set_option_button_clip(bool p_enable);
