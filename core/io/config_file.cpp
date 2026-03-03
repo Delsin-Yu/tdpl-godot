@@ -30,7 +30,7 @@
 
 #include "config_file.h"
 
-#include "core/io/file_access_encrypted.h"
+#include "core/io/file_access_obfuscated.h"
 #include "core/string/string_builder.h"
 #include "core/variant/variant_parser.h"
 
@@ -160,9 +160,9 @@ Error ConfigFile::save_encrypted(const String &p_path, const Vector<uint8_t> &p_
 		return err;
 	}
 
-	Ref<FileAccessEncrypted> fae;
+	Ref<FileAccessObfuscated> fae;
 	fae.instantiate();
-	err = fae->open_and_parse(f, p_key, FileAccessEncrypted::MODE_WRITE_AES256);
+	err = fae->open_and_parse(f, FileAccessObfuscated::MODE_WRITE);
 	if (err) {
 		return err;
 	}
@@ -177,9 +177,9 @@ Error ConfigFile::save_encrypted_pass(const String &p_path, const String &p_pass
 		return err;
 	}
 
-	Ref<FileAccessEncrypted> fae;
+	Ref<FileAccessObfuscated> fae;
 	fae.instantiate();
-	err = fae->open_and_parse_password(f, p_pass, FileAccessEncrypted::MODE_WRITE_AES256);
+	err = fae->open_and_parse(f, FileAccessObfuscated::MODE_WRITE);
 	if (err) {
 		return err;
 	}
@@ -228,9 +228,9 @@ Error ConfigFile::load_encrypted(const String &p_path, const Vector<uint8_t> &p_
 		return err;
 	}
 
-	Ref<FileAccessEncrypted> fae;
+	Ref<FileAccessObfuscated> fae;
 	fae.instantiate();
-	err = fae->open_and_parse(f, p_key, FileAccessEncrypted::MODE_READ);
+	err = fae->open_and_parse(f, FileAccessObfuscated::MODE_READ);
 	if (err) {
 		return err;
 	}
@@ -245,9 +245,9 @@ Error ConfigFile::load_encrypted_pass(const String &p_path, const String &p_pass
 		return err;
 	}
 
-	Ref<FileAccessEncrypted> fae;
+	Ref<FileAccessObfuscated> fae;
 	fae.instantiate();
-	err = fae->open_and_parse_password(f, p_pass, FileAccessEncrypted::MODE_READ);
+	err = fae->open_and_parse(f, FileAccessObfuscated::MODE_READ);
 	if (err) {
 		return err;
 	}
