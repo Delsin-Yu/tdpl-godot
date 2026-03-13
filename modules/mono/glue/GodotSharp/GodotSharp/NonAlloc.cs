@@ -1,5 +1,6 @@
 // This file contains methods that are specifically written to return a non-allocating struct as opposed to a Dictionary (or Array of Dictionaries) to avoid allocations.
 
+using System;
 using System.Collections.Generic;
 using Godot.NativeInterop;
 
@@ -26,6 +27,126 @@ partial class Node
             var obj = VariantUtils.ConvertToGodotObject(item);
             results.Add((Node)obj);
         }
+    }
+}
+
+static class NonAllocInterop
+{
+    public static unsafe void FillVector2IList(IntPtr method, IntPtr instance, void** callArgs, List<Vector2I> results)
+    {
+        godot_array ret = default;
+        NativeFuncs.godotsharp_method_bind_ptrcall(method, instance, callArgs, &ret);
+        for (var i = 0; i < ret.Size; i++)
+        {
+            results.Add(VariantUtils.ConvertToVector2I(ret.Elements[i]));
+        }
+        NativeFuncs.godotsharp_array_destroy(ref ret);
+    }
+}
+
+partial class TileMap
+{
+    private static readonly IntPtr MethodBindGetSurroundingCellsNonAlloc = ClassDB_get_method(NativeName, MethodName.GetSurroundingCells);
+    private static readonly IntPtr MethodBindGetUsedCellsNonAlloc = ClassDB_get_method(NativeName, MethodName.GetUsedCells);
+    private static readonly IntPtr MethodBindGetUsedCellsByIdNonAlloc = ClassDB_get_method(NativeName, MethodName.GetUsedCellsById);
+
+    /// <summary>
+    /// Stores the list of all neighboring cells to the one at <paramref name="coords"/> into the provided <paramref name="results"/> list.
+    /// </summary>
+    public unsafe void GetSurroundingCellsNonAlloc(Vector2I coords, List<Vector2I> results)
+    {
+        var ptr = GodotObject.GetPtr(this);
+        ExceptionUtils.ThrowIfNullPtr(ptr);
+        var coordsIn = coords;
+        void** callArgs = stackalloc void*[1] { &coordsIn };
+        NonAllocInterop.FillVector2IList(MethodBindGetSurroundingCellsNonAlloc, ptr, callArgs, results);
+    }
+
+    /// <summary>
+    /// Stores the positions of all cells containing a tile in the given <paramref name="layer"/> into the provided <paramref name="results"/> list.
+    /// </summary>
+    public unsafe void GetUsedCellsNonAlloc(int layer, List<Vector2I> results)
+    {
+        var ptr = GodotObject.GetPtr(this);
+        ExceptionUtils.ThrowIfNullPtr(ptr);
+        long layerIn = layer;
+        void** callArgs = stackalloc void*[1] { &layerIn };
+        NonAllocInterop.FillVector2IList(MethodBindGetUsedCellsNonAlloc, ptr, callArgs, results);
+    }
+
+    /// <summary>
+    /// Stores the positions of all cells containing a tile in the given <paramref name="layer"/> into the provided <paramref name="results"/> list.
+    /// Tiles may be filtered according to their source, atlas coordinates, or alternative ID.
+    /// </summary>
+    public unsafe void GetUsedCellsByIdNonAlloc(int layer, List<Vector2I> results, int sourceId = -1, Vector2I? atlasCoords = null, int alternativeTile = -1)
+    {
+        var ptr = GodotObject.GetPtr(this);
+        ExceptionUtils.ThrowIfNullPtr(ptr);
+        long layerIn = layer;
+        long sourceIdIn = sourceId;
+        var atlasCoordsIn = atlasCoords ?? new Vector2I(-1, -1);
+        long alternativeTileIn = alternativeTile;
+        void** callArgs = stackalloc void*[4] { &layerIn, &sourceIdIn, &atlasCoordsIn, &alternativeTileIn };
+        NonAllocInterop.FillVector2IList(MethodBindGetUsedCellsByIdNonAlloc, ptr, callArgs, results);
+    }
+}
+
+partial class TileMapLayer
+{
+    private static readonly IntPtr MethodBindGetSurroundingCellsNonAlloc = ClassDB_get_method(NativeName, MethodName.GetSurroundingCells);
+    private static readonly IntPtr MethodBindGetUsedCellsNonAlloc = ClassDB_get_method(NativeName, MethodName.GetUsedCells);
+    private static readonly IntPtr MethodBindGetUsedCellsByIdNonAlloc = ClassDB_get_method(NativeName, MethodName.GetUsedCellsById);
+
+    /// <summary>
+    /// Stores the list of all neighboring cells to the one at <paramref name="coords"/> into the provided <paramref name="results"/> list.
+    /// </summary>
+    public unsafe void GetSurroundingCellsNonAlloc(Vector2I coords, List<Vector2I> results)
+    {
+        var ptr = GodotObject.GetPtr(this);
+        ExceptionUtils.ThrowIfNullPtr(ptr);
+        var coordsIn = coords;
+        void** callArgs = stackalloc void*[1] { &coordsIn };
+        NonAllocInterop.FillVector2IList(MethodBindGetSurroundingCellsNonAlloc, ptr, callArgs, results);
+    }
+
+    /// <summary>
+    /// Stores the positions of all cells containing a tile in this layer into the provided <paramref name="results"/> list.
+    /// </summary>
+    public unsafe void GetUsedCellsNonAlloc(List<Vector2I> results)
+    {
+        var ptr = GodotObject.GetPtr(this);
+        ExceptionUtils.ThrowIfNullPtr(ptr);
+        NonAllocInterop.FillVector2IList(MethodBindGetUsedCellsNonAlloc, ptr, null, results);
+    }
+
+    /// <summary>
+    /// Stores the positions of all cells containing a tile in this layer into the provided <paramref name="results"/> list.
+    /// Tiles may be filtered according to their source, atlas coordinates, or alternative ID.
+    /// </summary>
+    public unsafe void GetUsedCellsByIdNonAlloc(List<Vector2I> results, int sourceId = -1, Vector2I? atlasCoords = null, int alternativeTile = -1)
+    {
+        var ptr = GodotObject.GetPtr(this);
+        ExceptionUtils.ThrowIfNullPtr(ptr);
+        long sourceIdIn = sourceId;
+        var atlasCoordsIn = atlasCoords ?? new Vector2I(-1, -1);
+        long alternativeTileIn = alternativeTile;
+        void** callArgs = stackalloc void*[3] { &sourceIdIn, &atlasCoordsIn, &alternativeTileIn };
+        NonAllocInterop.FillVector2IList(MethodBindGetUsedCellsByIdNonAlloc, ptr, callArgs, results);
+    }
+}
+
+partial class TileMapPattern
+{
+    private static readonly IntPtr MethodBindGetUsedCellsNonAlloc = ClassDB_get_method(NativeName, MethodName.GetUsedCells);
+
+    /// <summary>
+    /// Stores the list of used cell coordinates in this pattern into the provided <paramref name="results"/> list.
+    /// </summary>
+    public unsafe void GetUsedCellsNonAlloc(List<Vector2I> results)
+    {
+        var ptr = GodotObject.GetPtr(this);
+        ExceptionUtils.ThrowIfNullPtr(ptr);
+        NonAllocInterop.FillVector2IList(MethodBindGetUsedCellsNonAlloc, ptr, null, results);
     }
 }
 
