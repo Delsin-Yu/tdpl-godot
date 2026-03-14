@@ -201,6 +201,57 @@ def discover_localized_doc_locales(project_dir: str):
     return sorted(entry.name for entry in os.scandir(localized_docs_dir) if entry.is_dir())
 
 
+def build_localized_doc_satellite_packages(
+    msbuild_tool, module_dir, push_nupkgs_local, precision, no_deprecated, werror
+):
+    glue_dir = os.path.join(module_dir, "glue", "GodotSharp")
+    core_project_dir = os.path.join(glue_dir, "GodotSharp")
+    editor_project_dir = os.path.join(glue_dir, "GodotSharpEditor")
+
+    localized_projects = [
+        {
+            "package_name": "GodotSharp",
+            "project_dir": core_project_dir,
+            "project_path": os.path.join(core_project_dir, "GodotSharp.SatellitePackage.csproj"),
+        },
+        {
+            "package_name": "GodotSharpEditor",
+            "project_dir": editor_project_dir,
+            "project_path": os.path.join(editor_project_dir, "GodotSharpEditor.SatellitePackage.csproj"),
+        },
+    ]
+
+    for localized_project in localized_projects:
+        locales = discover_localized_doc_locales(localized_project["project_dir"])
+        for locale in locales:
+            args = [
+                "/restore",
+                "/t:Pack",
+                "/p:Configuration=Release",
+                "/p:SatelliteLocale=" + locale,
+            ]
+            if push_nupkgs_local:
+                args += ["/p:ClearNuGetLocalCache=true", "/p:PushNuGetToLocalSource=" + push_nupkgs_local]
+            if precision == "double":
+                args += ["/p:GodotFloat64=true"]
+            if no_deprecated:
+                args += ["/p:GodotNoDeprecated=true"]
+            if werror:
+                args += ["/p:TreatWarningsAsErrors=true"]
+
+            print(
+                f"Packing localized satellite package for {localized_project['package_name']} ({locale})...",
+                flush=True,
+            )
+            exit_code = run_msbuild(
+                msbuild_tool, sln=localized_project["project_path"], chdir_to=module_dir, msbuild_args=args
+            )
+            if exit_code != 0:
+                return exit_code
+
+    return 0
+
+
 def build_godot_api(msbuild_tool, module_dir, output_dir, push_nupkgs_local, precision, no_deprecated, werror):
     target_filenames = [
         "GodotSharp.dll",
@@ -284,6 +335,17 @@ def build_godot_api(msbuild_tool, module_dir, output_dir, push_nupkgs_local, pre
 
         copy_localized_doc(core_src_dir, "GodotSharp")
         copy_localized_doc(editor_src_dir, "GodotSharpEditor")
+
+    exit_code = build_localized_doc_satellite_packages(
+        msbuild_tool,
+        module_dir,
+        push_nupkgs_local,
+        precision,
+        no_deprecated,
+        werror,
+    )
+    if exit_code != 0:
+        return exit_code
 
     return 0
 

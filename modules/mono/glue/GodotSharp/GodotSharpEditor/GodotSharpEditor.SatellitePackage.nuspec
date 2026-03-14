@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>$packageId$</id>
+    <version>$packageVersion$</version>
+    <authors>Godot Engine contributors</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <projectUrl>$projectUrl$</projectUrl>
+    <description>Localized IntelliSense XML docs for the Godot C# Editor API.</description>
+    <copyright>$copyright$</copyright>
+    <language>$locale$</language>
+    <repository type="git" url="$repositoryUrl$" />
+    <dependencies>
+      <group targetFramework="net8.0">
+        <dependency id="$primaryPackageId$" version="[$primaryPackageVersion$]" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="$resourceAssemblyPath$" target="lib\net8.0\$locale$\GodotSharpEditor.resources.dll" />
+    <file src="$localizedDocPath$" target="lib\net8.0\$locale$\GodotSharpEditor.xml" />
+  </files>
+</package>

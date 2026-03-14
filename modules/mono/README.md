@@ -17,7 +17,7 @@
    ```sh
    ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir ./bin
    ```
-    If localized XML docs were generated, they are mirrored into the copied GodotSharp API output automatically.
+    If localized XML docs were generated, they are mirrored into the copied GodotSharp API output automatically and packed into locale-specific NuGet satellite packages during the Release build.
 
 The paths specified in these examples assume the command is being run from
 the Godot source root.

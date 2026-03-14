@@ -29,7 +29,6 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);CollectLocalizedDocsForPack</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
   <ItemGroup>
@@ -37,15 +36,8 @@
     <None Include="$(GodotSdkPackageVersionsFilePath)">
       <Link>SdkPackageVersions.props</Link>
     </None>
+    <None Include="GodotSharp.targets" Pack="true" PackagePath="buildTransitive\net8.0\GodotSharp.targets" />
   </ItemGroup>
-
-  <Target Name="CollectLocalizedDocsForPack">
-    <ItemGroup>
-      <TfmSpecificPackageFile Include="LocalizedDocs\**\*.xml">
-        <PackagePath>lib\$(TargetFramework)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
-      </TfmSpecificPackageFile>
-    </ItemGroup>
-  </Target>
 
   <PropertyGroup>
     <DefineConstants>$(DefineConstants);GODOT</DefineConstants>

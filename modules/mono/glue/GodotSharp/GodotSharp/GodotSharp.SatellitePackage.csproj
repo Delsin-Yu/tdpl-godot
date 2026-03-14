@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PrimaryPackageId>GodotSharp</PrimaryPackageId>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>$(PrimaryPackageId).resources</AssemblyName>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+
+    <PackageId>$(PrimaryPackageId).$(SatelliteLocale)</PackageId>
+    <PackageVersion>$(PackageVersion_GodotSharp)</PackageVersion>
+    <RepositoryUrl>https://github.com/godotengine/godot/tree/master/modules/mono/glue/GodotSharp/GodotSharp</RepositoryUrl>
+    <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
+    <Copyright>Copyright (c) Godot Engine contributors</Copyright>
+
+    <PackageOutputPath>bin\$(Configuration)</PackageOutputPath>
+    <ResourceAssemblyPath>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(AssemblyName).dll</ResourceAssemblyPath>
+    <NuspecOutputPath>obj\$(Configuration)</NuspecOutputPath>
+    <NuspecFile>GodotSharp.SatellitePackage.nuspec</NuspecFile>
+    <NuspecBasePath>$(MSBuildProjectDirectory)</NuspecBasePath>
+    <NuspecProperties>packageId=$(PackageId);packageVersion=$(PackageVersion);primaryPackageId=$(PrimaryPackageId);primaryPackageVersion=$(PackageVersion);locale=$(SatelliteLocale);localizedDocPath=$(MSBuildProjectDirectory)\LocalizedDocs\$(SatelliteLocale)\$(PrimaryPackageId).xml;resourceAssemblyPath=$(ResourceAssemblyPath);projectUrl=$(PackageProjectUrl);repositoryUrl=$(RepositoryUrl);copyright=$(Copyright)</NuspecProperties>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="SatellitePackagePlaceholder.cs" />
+  </ItemGroup>
+
+  <Target Name="ValidateSatellitePackInputs" BeforeTargets="Pack">
+    <Error Condition="'$(SatelliteLocale)' == ''" Text="SatelliteLocale must be specified when packing GodotSharp localized docs." />
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)\LocalizedDocs\$(SatelliteLocale)\GodotSharp.xml')" Text="Localized docs were not found for GodotSharp locale '$(SatelliteLocale)'." />
+  </Target>
+
+  <Target Name="WriteResolvedSatelliteNuspec" AfterTargets="Pack">
+    <PropertyGroup>
+      <_ResolvedSatelliteNuspecPath>$(MSBuildProjectDirectory)\$(NuspecOutputPath)\$(PackageId).$(PackageVersion).nuspec</_ResolvedSatelliteNuspecPath>
+      <_ResolvedSatelliteNuspec>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\$(NuspecFile)').Replace('$packageId$', '$(PackageId)').Replace('$packageVersion$', '$(PackageVersion)').Replace('$primaryPackageId$', '$(PrimaryPackageId)').Replace('$primaryPackageVersion$', '$(PackageVersion)').Replace('$locale$', '$(SatelliteLocale)').Replace('$localizedDocPath$', '$(MSBuildProjectDirectory)\LocalizedDocs\$(SatelliteLocale)\$(PrimaryPackageId).xml').Replace('$resourceAssemblyPath$', '$(ResourceAssemblyPath)').Replace('$projectUrl$', '$(PackageProjectUrl)').Replace('$repositoryUrl$', '$(RepositoryUrl)').Replace('$copyright$', '$(Copyright)'))</_ResolvedSatelliteNuspec>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(MSBuildProjectDirectory)\$(NuspecOutputPath)" />
+    <WriteLinesToFile File="$(_ResolvedSatelliteNuspecPath)" Lines="$(_ResolvedSatelliteNuspec)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
+
+</Project>

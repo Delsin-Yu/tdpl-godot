@@ -25,24 +25,19 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);CollectLocalizedDocsForPack</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
   <PropertyGroup>
     <DefineConstants>$(DefineConstants);GODOT</DefineConstants>
     <DefineConstants Condition=" '$(GodotFloat64)' == 'true' ">REAL_T_IS_DOUBLE;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="GodotSharpEditor.targets" Pack="true" PackagePath="buildTransitive\net8.0\GodotSharpEditor.targets" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\GodotSharp\GodotSharp.csproj">
       <Private>false</Private>
     </ProjectReference>
   </ItemGroup>
-  <Target Name="CollectLocalizedDocsForPack">
-    <ItemGroup>
-      <TfmSpecificPackageFile Include="LocalizedDocs\**\*.xml">
-        <PackagePath>lib\$(TargetFramework)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
-      </TfmSpecificPackageFile>
-    </ItemGroup>
-  </Target>
   <!-- Compat Sources -->
   <ItemGroup Condition=" '$(GodotNoDeprecated)' == '' ">
     <Compile Include="Compat.cs" />
