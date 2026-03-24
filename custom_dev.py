@@ -1,6 +1,5 @@
 dev_build = "yes"
 debug_symbols = "yes"
-deprecated = "no"
 no_editor_splash = "yes"
 engine_update_check = "no"
 graphite = "no"

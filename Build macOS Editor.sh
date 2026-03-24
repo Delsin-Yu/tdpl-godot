@@ -6,4 +6,4 @@ lipo -create bin/godot.macos.editor.x86_64.mono bin/godot.macos.editor.arm64.mon
 rm bin/godot.macos.editor.x86_64.mono
 rm bin/godot.macos.editor.arm64.mono
 bin/godot.macos.editor.universal.mono --headless --generate-mono-glue modules/mono/glue
-python3 ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=bin --no-deprecated
+python3 ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=bin

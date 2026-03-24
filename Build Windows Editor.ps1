@@ -8,4 +8,4 @@ $env:BUILD_NAME = "tdpl"
 scons p=windows arch=x86_64 target=editor module_websocket_enabled=yes module_jsonrpc_enabled=yes d3d12=yes compiledb=yes profile=custom.py
 
 .\bin\godot.windows.editor.x86_64.mono.console.exe --headless --generate-mono-glue modules\mono\glue
-python .\modules\mono\build_scripts\build_assemblies.py --godot-output-dir=.\bin --no-deprecated
+python .\modules\mono\build_scripts\build_assemblies.py --godot-output-dir=.\bin
