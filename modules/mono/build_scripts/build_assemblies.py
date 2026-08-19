@@ -188,7 +188,9 @@ def run_msbuild(tools: ToolsLocation, sln: str, chdir_to: str, msbuild_args: lis
     return subprocess.call(args, env=msbuild_env, cwd=chdir_to)
 
 
-def build_godot_api(msbuild_tool, module_dir, output_dir, push_nupkgs_local, precision, no_deprecated, werror):
+def build_godot_api(
+    msbuild_tool, module_dir, output_dir, push_nupkgs_local, precision, no_deprecated, werror, guidot_api=False
+):
     target_filenames = [
         "GodotSharp.dll",
         "GodotSharp.pdb",
@@ -213,6 +215,8 @@ def build_godot_api(msbuild_tool, module_dir, output_dir, push_nupkgs_local, pre
             args += ["/p:GodotFloat64=true"]
         if no_deprecated:
             args += ["/p:GodotNoDeprecated=true"]
+        if guidot_api:
+            args += ["/p:GodotGuidotApi=true"]
         if werror:
             args += ["/p:TreatWarningsAsErrors=true"]
 
@@ -358,14 +362,23 @@ def generate_sdk_package_versions():
 
 
 def build_all(
-    msbuild_tool, module_dir, output_dir, godot_platform, dev_debug, push_nupkgs_local, precision, no_deprecated, werror
+    msbuild_tool,
+    module_dir,
+    output_dir,
+    godot_platform,
+    dev_debug,
+    push_nupkgs_local,
+    precision,
+    no_deprecated,
+    werror,
+    guidot_api=False,
 ):
     # Generate SdkPackageVersions.props and VersionDocsUrl constant
     generate_sdk_package_versions()
 
     # Godot API
     exit_code = build_godot_api(
-        msbuild_tool, module_dir, output_dir, push_nupkgs_local, precision, no_deprecated, werror
+        msbuild_tool, module_dir, output_dir, push_nupkgs_local, precision, no_deprecated, werror, guidot_api
     )
     if exit_code != 0:
         return exit_code
@@ -423,6 +436,12 @@ def main():
         default=False,
         help="Build GodotSharp without using deprecated features. This is required, if the engine was built with 'deprecated=no'.",
     )
+    parser.add_argument(
+        "--guidot-api",
+        action="store_true",
+        default=False,
+        help="Build GodotSharp for Guidot (omit Compat.3D and match a trimmed GUI API).",
+    )
     parser.add_argument("--werror", action="store_true", default=False, help="Treat compiler warnings as errors.")
 
     args = parser.parse_args()
@@ -450,6 +469,7 @@ def main():
         args.precision,
         args.no_deprecated,
         args.werror,
+        args.guidot_api,
     )
     sys.exit(exit_code)
 

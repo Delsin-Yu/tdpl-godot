@@ -818,6 +818,9 @@ class BindingsGenerator {
 
 	Error _populate_method_icalls_table(const TypeInterface &p_itype);
 
+	bool _is_type_ref_available(const TypeReference &p_typeref) const;
+	void _filter_guidot_excluded_members();
+
 	const TypeInterface *_get_type_or_null(const TypeReference &p_typeref);
 	const TypeInterface *_get_type_or_singleton_or_null(const TypeReference &p_typeref);
 
@@ -864,6 +867,10 @@ public:
 	_FORCE_INLINE_ void set_log_print_enabled(bool p_enabled) { log_print_enabled = p_enabled; }
 
 	_FORCE_INLINE_ bool is_initialized() { return initialized; }
+
+	static Error load_guidot_api(const String &p_path);
+	static bool is_guidot_api_enabled();
+	static bool is_guidot_excluded_class(const StringName &p_class);
 
 	static void handle_cmdline_args(const List<String> &p_cmdline_args);
 

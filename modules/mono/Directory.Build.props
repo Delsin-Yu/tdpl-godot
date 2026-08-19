@@ -1,6 +1,8 @@
 <Project>
   <PropertyGroup>
     <GodotSdkPackageVersionsFilePath>$(MSBuildThisFileDirectory)\SdkPackageVersions.props</GodotSdkPackageVersionsFilePath>
+    <!-- Guidot branch ships a trimmed C# API; default on so nested MSBuild projects stay consistent. -->
+    <GodotGuidotApi Condition=" '$(GodotGuidotApi)' == '' ">true</GodotGuidotApi>
   </PropertyGroup>
   <Import Project="$(GodotSdkPackageVersionsFilePath)" />
 </Project>

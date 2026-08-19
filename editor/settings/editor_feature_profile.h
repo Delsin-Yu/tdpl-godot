@@ -100,6 +100,11 @@ public:
 	static String get_feature_name(Feature p_feature);
 	static String get_feature_description(Feature p_feature);
 
+#ifdef GUIDOT_ENABLED
+	static String get_builtin_guidot_profile_name();
+	static Ref<EditorFeatureProfile> create_builtin_guidot_profile();
+#endif
+
 	EditorFeatureProfile();
 };
 

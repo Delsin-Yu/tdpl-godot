@@ -1,0 +1,23 @@
+{
+	"type": "build_profile",
+	"disabled_classes": [],
+	"disabled_build_options": {
+		"disable_3d": true,
+		"disable_physics_2d": true,
+		"disable_physics_3d": true,
+		"disable_navigation_2d": true,
+		"disable_navigation_3d": true,
+		"disable_xr": true,
+		"module_openxr_enabled": false,
+		"vulkan": false,
+		"d3d12": false,
+		"metal": false,
+		"opengl3": true,
+		"module_text_server_fb_enabled": false,
+		"module_text_server_adv_enabled": true,
+		"module_freetype_enabled": true,
+		"brotli": true,
+		"graphite": false,
+		"module_msdfgen_enabled": true
+	}
+}

@@ -41,6 +41,7 @@
   <PropertyGroup>
     <DefineConstants>$(DefineConstants);GODOT</DefineConstants>
     <DefineConstants Condition=" '$(GodotFloat64)' == 'true' ">REAL_T_IS_DOUBLE;$(DefineConstants)</DefineConstants>
+    <DefineConstants Condition=" '$(GodotGuidotApi)' == 'true' ">GODOT_GUIDOT_API;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -146,6 +147,7 @@
   <!-- Compat Sources -->
   <ItemGroup Condition=" '$(GodotNoDeprecated)' == '' ">
     <Compile Include="Compat.cs" />
+    <Compile Include="Compat.3D.cs" Condition=" '$(GodotGuidotApi)' != 'true' " />
   </ItemGroup>
 
   <!--

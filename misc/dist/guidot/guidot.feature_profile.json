@@ -1,0 +1,11 @@
+{
+	"type": "feature_profile",
+	"disabled_classes": [
+		"Node3D"
+	],
+	"disabled_editors": [],
+	"disabled_properties": [],
+	"disabled_features": [
+		"3d"
+	]
+}

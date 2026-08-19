@@ -41,6 +41,7 @@
 #include "core/core_constants.h"
 #include "core/io/dir_access.h"
 #include "core/io/file_access.h"
+#include "core/io/json.h"
 #include "core/os/os.h"
 #include "main/main.h"
 
@@ -123,6 +124,59 @@ StringBuilder &operator<<(StringBuilder &r_sb, const char *p_cstring) {
 // Types that will be ignored by the generator and won't be available in C#.
 // This must be kept in sync with `ignored_types` in csharp_script.cpp
 const Vector<String> ignored_types = {};
+
+static bool guidot_api_enabled = false;
+static HashSet<StringName> guidot_disabled_class_roots;
+static HashSet<StringName> guidot_disabled_classes;
+
+Error BindingsGenerator::load_guidot_api(const String &p_path) {
+	guidot_api_enabled = false;
+	guidot_disabled_class_roots.clear();
+	guidot_disabled_classes.clear();
+
+	Error err = OK;
+	String text = FileAccess::get_file_as_string(p_path, &err);
+	ERR_FAIL_COND_V_MSG(err != OK, err, "Failed to read Guidot API filter: " + p_path);
+
+	JSON json;
+	err = json.parse(text);
+	ERR_FAIL_COND_V_MSG(err != OK, ERR_PARSE_ERROR,
+			"Failed to parse Guidot API filter '" + p_path + "' on line " + itos(json.get_error_line()) + ": " + json.get_error_message());
+
+	Dictionary data = json.get_data();
+	Array roots = data.get("disabled_class_roots", Array());
+	for (int i = 0; i < roots.size(); i++) {
+		guidot_disabled_class_roots.insert(StringName(String(roots[i])));
+	}
+	Array classes = data.get("disabled_classes", Array());
+	for (int i = 0; i < classes.size(); i++) {
+		guidot_disabled_classes.insert(StringName(String(classes[i])));
+	}
+
+	guidot_api_enabled = true;
+	print_line("Guidot API filter loaded: " + itos(guidot_disabled_class_roots.size()) + " roots, " +
+			itos(guidot_disabled_classes.size()) + " classes from " + p_path);
+	return OK;
+}
+
+bool BindingsGenerator::is_guidot_api_enabled() {
+	return guidot_api_enabled;
+}
+
+bool BindingsGenerator::is_guidot_excluded_class(const StringName &p_class) {
+	if (!guidot_api_enabled || p_class == StringName()) {
+		return false;
+	}
+	if (guidot_disabled_classes.has(p_class)) {
+		return true;
+	}
+	for (const StringName &root : guidot_disabled_class_roots) {
+		if (p_class == root || ClassDB::is_parent_class(p_class, root)) {
+			return true;
+		}
+	}
+	return false;
+}
 
 // Special [code] keywords to wrap with <see langword="code"/> instead of <c>code</c>.
 // Don't check against all C# reserved words, as many cases are GDScript-specific.
@@ -1755,6 +1809,23 @@ Error BindingsGenerator::generate_cs_core_project(const String &p_proj_dir) {
 	String base_gen_dir = Path::join(p_proj_dir, "Generated");
 	String godot_objects_gen_dir = Path::join(base_gen_dir, "GodotObjects");
 
+	if (is_guidot_api_enabled()) {
+		// Drop stale generated sources from a previous full-API run so Guidot
+		// builds do not keep orphan Node3D / physics wrappers on disk.
+		Ref<DirAccess> objects_da = DirAccess::open(godot_objects_gen_dir);
+		if (objects_da.is_valid()) {
+			objects_da->list_dir_begin();
+			for (String file = objects_da->get_next(); !file.is_empty(); file = objects_da->get_next()) {
+				if (objects_da->current_is_dir()) {
+					continue;
+				}
+				if (file.ends_with(".cs")) {
+					objects_da->remove(file);
+				}
+			}
+		}
+	}
+
 	Vector<String> compile_items;
 
 	// Generate source file for global scope constants and enums
@@ -1950,6 +2021,21 @@ Error BindingsGenerator::generate_cs_editor_project(const String &p_proj_dir) {
 
 	String base_gen_dir = Path::join(p_proj_dir, "Generated");
 	String godot_objects_gen_dir = Path::join(base_gen_dir, "GodotObjects");
+
+	if (is_guidot_api_enabled()) {
+		Ref<DirAccess> objects_da = DirAccess::open(godot_objects_gen_dir);
+		if (objects_da.is_valid()) {
+			objects_da->list_dir_begin();
+			for (String file = objects_da->get_next(); !file.is_empty(); file = objects_da->get_next()) {
+				if (objects_da->current_is_dir()) {
+					continue;
+				}
+				if (file.ends_with(".cs")) {
+					objects_da->remove(file);
+				}
+			}
+		}
+	}
 
 	Vector<String> compile_items;
 
@@ -3900,6 +3986,11 @@ bool BindingsGenerator::_populate_object_type_interfaces() {
 			continue;
 		}
 
+		if (is_guidot_excluded_class(type_cname)) {
+			_log("Ignoring type '%s' because it's excluded by the Guidot API filter\n", String(type_cname).utf8().get_data());
+			continue;
+		}
+
 		ClassDB::ClassInfo *class_info = ClassDB::classes.getptr(type_cname);
 
 		TypeInterface itype = TypeInterface::create_object_type(type_cname, pascal_to_pascal_case(type_cname), api_type);
@@ -5220,6 +5311,145 @@ void BindingsGenerator::_log(const char *p_format, ...) {
 	}
 }
 
+bool BindingsGenerator::_is_type_ref_available(const TypeReference &p_typeref) const {
+	if (p_typeref.cname == StringName() || p_typeref.cname == name_cache.type_void) {
+		return true;
+	}
+
+	for (const TypeReference &param : p_typeref.generic_type_parameters) {
+		if (!_is_type_ref_available(param)) {
+			return false;
+		}
+	}
+
+	if (p_typeref.is_enum) {
+		const String enum_name = p_typeref.cname;
+		const int dot_pos = enum_name.rfind_char('.');
+		if (dot_pos >= 0) {
+			const StringName enum_owner = enum_name.substr(0, dot_pos);
+			if (ClassDB::class_exists(enum_owner) && !obj_types.has(enum_owner)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	if (ClassDB::class_exists(p_typeref.cname)) {
+		return obj_types.has(p_typeref.cname);
+	}
+
+	return true;
+}
+
+void BindingsGenerator::_filter_guidot_excluded_members() {
+	if (!is_guidot_api_enabled()) {
+		return;
+	}
+
+	// Drop types whose base class was excluded (e.g. EditorNode3DGizmo -> Node3DGizmo).
+	bool removed_type = true;
+	int removed_types = 0;
+	while (removed_type) {
+		removed_type = false;
+		LocalVector<StringName> to_erase;
+		for (const KeyValue<StringName, TypeInterface> &E : obj_types) {
+			const TypeInterface &itype = E.value;
+			if (itype.base_name == StringName() || itype.base_name == name_cache.type_Object) {
+				continue;
+			}
+			if (obj_types.has(itype.base_name)) {
+				continue;
+			}
+			if (ClassDB::class_exists(itype.base_name) || is_guidot_excluded_class(itype.base_name)) {
+				to_erase.push_back(E.key);
+			}
+		}
+		for (const StringName &name : to_erase) {
+			_log("Guidot: omitting type %s (base class excluded)\n", String(name).utf8().get_data());
+			obj_types.erase(name);
+			removed_types++;
+			removed_type = true;
+		}
+	}
+
+	int removed_methods = 0;
+	int removed_signals = 0;
+	int removed_properties = 0;
+
+	for (KeyValue<StringName, TypeInterface> &E : obj_types) {
+		TypeInterface &itype = E.value;
+
+		for (List<MethodInterface>::Element *M = itype.methods.front(); M;) {
+			List<MethodInterface>::Element *next = M->next();
+			const MethodInterface &imethod = M->get();
+			bool drop = !_is_type_ref_available(imethod.return_type);
+			if (!drop) {
+				for (const ArgumentInterface &iarg : imethod.arguments) {
+					if (!_is_type_ref_available(iarg.type)) {
+						drop = true;
+						break;
+					}
+				}
+			}
+			if (drop) {
+				_log("Guidot: omitting method %s.%s (references excluded type)\n",
+						String(itype.cname).utf8().get_data(), String(imethod.cname).utf8().get_data());
+				itype.methods.erase(M);
+				removed_methods++;
+			}
+			M = next;
+		}
+
+		for (List<SignalInterface>::Element *S = itype.signals_.front(); S;) {
+			List<SignalInterface>::Element *next = S->next();
+			bool drop = false;
+			for (const ArgumentInterface &iarg : S->get().arguments) {
+				if (!_is_type_ref_available(iarg.type)) {
+					drop = true;
+					break;
+				}
+			}
+			if (drop) {
+				_log("Guidot: omitting signal %s.%s (references excluded type)\n",
+						String(itype.cname).utf8().get_data(), String(S->get().cname).utf8().get_data());
+				itype.signals_.erase(S);
+				removed_signals++;
+			}
+			S = next;
+		}
+
+		for (List<PropertyInterface>::Element *P = itype.properties.front(); P;) {
+			List<PropertyInterface>::Element *next = P->next();
+			const PropertyInterface &iprop = P->get();
+			bool drop = false;
+
+			const MethodInterface *getter = iprop.getter != StringName() ? itype.find_method_by_name(iprop.getter) : nullptr;
+			const MethodInterface *setter = iprop.setter != StringName() ? itype.find_method_by_name(iprop.setter) : nullptr;
+
+			if (iprop.getter != StringName() && getter == nullptr) {
+				drop = true;
+			} else if (iprop.setter != StringName() && setter == nullptr && getter == nullptr) {
+				drop = true;
+			} else if (getter && !_is_type_ref_available(getter->return_type)) {
+				drop = true;
+			} else if (!getter && setter && !setter->arguments.is_empty() && !_is_type_ref_available(setter->arguments.back()->get().type)) {
+				drop = true;
+			}
+
+			if (drop) {
+				_log("Guidot: omitting property %s.%s (references excluded type)\n",
+						String(itype.cname).utf8().get_data(), String(iprop.cname).utf8().get_data());
+				itype.properties.erase(P);
+				removed_properties++;
+			}
+			P = next;
+		}
+	}
+
+	print_line(vformat("Guidot API member filter: removed %d dependent types, %d methods, %d signals, %d properties",
+			removed_types, removed_methods, removed_signals, removed_properties));
+}
+
 void BindingsGenerator::_initialize() {
 	initialized = false;
 
@@ -5233,6 +5463,8 @@ void BindingsGenerator::_initialize() {
 
 	bool obj_type_ok = _populate_object_type_interfaces();
 	ERR_FAIL_COND_MSG(!obj_type_ok, "Failed to generate object type interfaces");
+
+	_filter_guidot_excluded_members();
 
 	_populate_builtin_type_interfaces();
 
@@ -5250,6 +5482,7 @@ void BindingsGenerator::_initialize() {
 }
 
 static String generate_all_glue_option = "--generate-mono-glue";
+static String guidot_api_option = "--guidot-api";
 
 static void handle_cmdline_options(String glue_dir_path) {
 	BindingsGenerator bindings_generator;
@@ -5275,6 +5508,7 @@ static void cleanup_and_exit_godot() {
 
 void BindingsGenerator::handle_cmdline_args(const List<String> &p_cmdline_args) {
 	String glue_dir_path;
+	String guidot_api_path;
 
 	const List<String>::Element *elem = p_cmdline_args.front();
 
@@ -5290,14 +5524,29 @@ void BindingsGenerator::handle_cmdline_args(const List<String> &p_cmdline_args) 
 				// Exit once done with invalid command line arguments.
 				cleanup_and_exit_godot();
 			}
-
-			break;
+		} else if (elem->get() == guidot_api_option) {
+			const List<String>::Element *path_elem = elem->next();
+			if (path_elem && !path_elem->get().begins_with("--")) {
+				guidot_api_path = path_elem->get();
+				elem = elem->next();
+			} else {
+				ERR_PRINT(guidot_api_option + ": No Guidot API JSON path specified.");
+				cleanup_and_exit_godot();
+			}
 		}
 
 		elem = elem->next();
 	}
 
 	if (glue_dir_path.length()) {
+		if (!guidot_api_path.is_empty()) {
+			Error err = load_guidot_api(guidot_api_path);
+			if (err != OK) {
+				ERR_PRINT(guidot_api_option + ": Failed to load Guidot API filter.");
+				cleanup_and_exit_godot();
+			}
+		}
+
 		if (Engine::get_singleton()->is_editor_hint() ||
 				Engine::get_singleton()->is_project_manager_hint()) {
 			handle_cmdline_options(glue_dir_path);

@@ -31,6 +31,7 @@
 #include "editor_feature_profile.h"
 
 #include "core/io/dir_access.h"
+#include "core/io/file_access.h"
 #include "core/io/json.h"
 #include "core/object/callable_mp.h"
 #include "core/object/class_db.h"
@@ -334,6 +335,21 @@ void EditorFeatureProfile::_bind_methods() {
 	BIND_ENUM_CONSTANT(FEATURE_MAX);
 }
 
+#ifdef GUIDOT_ENABLED
+String EditorFeatureProfile::get_builtin_guidot_profile_name() {
+	return "Guidot";
+}
+
+Ref<EditorFeatureProfile> EditorFeatureProfile::create_builtin_guidot_profile() {
+	// Matches misc/dist/guidot/guidot.feature_profile.json: hide 3D workspace / Node3D.
+	Ref<EditorFeatureProfile> profile;
+	profile.instantiate();
+	profile->set_disable_feature(FEATURE_3D, true);
+	profile->set_disable_class(SNAME("Node3D"), true);
+	return profile;
+}
+#endif
+
 EditorFeatureProfile::EditorFeatureProfile() {
 	for (int i = 0; i < FEATURE_MAX; i++) {
 		features_disabled[i] = false;
@@ -345,14 +361,37 @@ EditorFeatureProfile::EditorFeatureProfile() {
 void EditorFeatureProfileManager::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_READY: {
+#ifdef GUIDOT_ENABLED
+			// Install / refresh the built-in Guidot profile (source of truth in code).
+			// Native 3D remains compiled for the editor / C# glue; the profile only hides it.
+			{
+				const String guidot_name = EditorFeatureProfile::get_builtin_guidot_profile_name();
+				const String guidot_path = EditorPaths::get_singleton()->get_feature_profiles_dir().path_join(guidot_name + ".profile");
+				Ref<EditorFeatureProfile> guidot_profile = EditorFeatureProfile::create_builtin_guidot_profile();
+				guidot_profile->save_to_file(guidot_path);
+			}
+#endif
 			current_profile = EDITOR_GET("_default_feature_profile");
+#ifdef GUIDOT_ENABLED
+			if (current_profile.is_empty()) {
+				current_profile = EditorFeatureProfile::get_builtin_guidot_profile_name();
+				EditorSettings::get_singleton()->set("_default_feature_profile", current_profile);
+			}
+#endif
 			if (!current_profile.is_empty()) {
 				current.instantiate();
 				Error err = current->load_from_file(EditorPaths::get_singleton()->get_feature_profiles_dir().path_join(current_profile + ".profile"));
 				if (err != OK) {
-					ERR_PRINT("Error loading default feature profile: " + current_profile);
-					current_profile = String();
-					current.unref();
+#ifdef GUIDOT_ENABLED
+					if (current_profile == EditorFeatureProfile::get_builtin_guidot_profile_name()) {
+						current = EditorFeatureProfile::create_builtin_guidot_profile();
+					} else
+#endif
+					{
+						ERR_PRINT("Error loading default feature profile: " + current_profile);
+						current_profile = String();
+						current.unref();
+					}
 				}
 			}
 			_update_profile_list(current_profile);
@@ -420,6 +459,11 @@ void EditorFeatureProfileManager::_update_profile_list(const String &p_select_pr
 		if (name == current_profile) {
 			name += " " + TTR("(current)");
 		}
+#ifdef GUIDOT_ENABLED
+		if (profiles[i] == EditorFeatureProfile::get_builtin_guidot_profile_name()) {
+			name += " " + TTR("(Builtin)");
+		}
+#endif
 		profile_list->add_item(name);
 		int index = profile_list->get_item_count() - 1;
 		profile_list->set_item_metadata(index, profiles[i]);
@@ -431,8 +475,15 @@ void EditorFeatureProfileManager::_update_profile_list(const String &p_select_pr
 	class_list_vbc->set_visible(!selected_profile.is_empty());
 	property_list_vbc->set_visible(!selected_profile.is_empty());
 	no_profile_selected_help->set_visible(selected_profile.is_empty());
+#ifdef GUIDOT_ENABLED
+	const bool selected_is_builtin_guidot = selected_profile == EditorFeatureProfile::get_builtin_guidot_profile_name();
+	const bool current_is_builtin_guidot = current_profile == EditorFeatureProfile::get_builtin_guidot_profile_name();
+	profile_actions[PROFILE_CLEAR]->set_disabled(current_profile.is_empty() || current_is_builtin_guidot);
+	profile_actions[PROFILE_ERASE]->set_disabled(selected_profile.is_empty() || selected_is_builtin_guidot);
+#else
 	profile_actions[PROFILE_CLEAR]->set_disabled(current_profile.is_empty());
 	profile_actions[PROFILE_ERASE]->set_disabled(selected_profile.is_empty());
+#endif
 	profile_actions[PROFILE_EXPORT]->set_disabled(selected_profile.is_empty());
 	profile_actions[PROFILE_SET]->set_disabled(selected_profile.is_empty());
 
@@ -444,7 +495,11 @@ void EditorFeatureProfileManager::_update_profile_list(const String &p_select_pr
 void EditorFeatureProfileManager::_profile_action(int p_action) {
 	switch (p_action) {
 		case PROFILE_CLEAR: {
+#ifdef GUIDOT_ENABLED
+			set_current_profile(EditorFeatureProfile::get_builtin_guidot_profile_name(), true);
+#else
 			set_current_profile("", false);
+#endif
 		} break;
 		case PROFILE_SET: {
 			String selected = _get_selected_profile();
@@ -469,6 +524,9 @@ void EditorFeatureProfileManager::_profile_action(int p_action) {
 		case PROFILE_ERASE: {
 			String selected = _get_selected_profile();
 			ERR_FAIL_COND(selected.is_empty());
+#ifdef GUIDOT_ENABLED
+			ERR_FAIL_COND_MSG(selected == EditorFeatureProfile::get_builtin_guidot_profile_name(), "Cannot remove the built-in Guidot feature profile.");
+#endif
 
 			erase_profile_dialog->set_text(vformat(TTR("Remove currently selected profile, '%s'? Cannot be undone."), selected));
 			erase_profile_dialog->popup_centered(Size2(240, 60) * EDSCALE);
@@ -479,6 +537,9 @@ void EditorFeatureProfileManager::_profile_action(int p_action) {
 void EditorFeatureProfileManager::_erase_selected_profile() {
 	String selected = _get_selected_profile();
 	ERR_FAIL_COND(selected.is_empty());
+#ifdef GUIDOT_ENABLED
+	ERR_FAIL_COND_MSG(selected == EditorFeatureProfile::get_builtin_guidot_profile_name(), "Cannot remove the built-in Guidot feature profile.");
+#endif
 	Ref<DirAccess> da = DirAccess::open(EditorPaths::get_singleton()->get_feature_profiles_dir());
 	ERR_FAIL_COND_MSG(da.is_null(), "Cannot open directory '" + EditorPaths::get_singleton()->get_feature_profiles_dir() + "'.");
 
@@ -496,6 +557,12 @@ void EditorFeatureProfileManager::_create_new_profile() {
 		EditorNode::get_singleton()->show_warning(TTR("Profile must be a valid filename and must not contain '.'"));
 		return;
 	}
+#ifdef GUIDOT_ENABLED
+	if (name == EditorFeatureProfile::get_builtin_guidot_profile_name()) {
+		EditorNode::get_singleton()->show_warning(TTR("Cannot replace the built-in Guidot feature profile."));
+		return;
+	}
+#endif
 	String file = EditorPaths::get_singleton()->get_feature_profiles_dir().path_join(name + ".profile");
 	if (FileAccess::exists(file)) {
 		EditorNode::get_singleton()->show_warning(TTR("Profile with this name already exists."));
@@ -899,16 +966,23 @@ String EditorFeatureProfileManager::get_current_profile_name() const {
 }
 
 void EditorFeatureProfileManager::set_current_profile(const String &p_profile_name, bool p_validate_profile) {
-	if (p_validate_profile && !p_profile_name.is_empty()) {
+	String profile_name = p_profile_name;
+#ifdef GUIDOT_ENABLED
+	// Guidot builds always keep a feature profile; empty means the built-in Guidot profile.
+	if (profile_name.is_empty()) {
+		profile_name = EditorFeatureProfile::get_builtin_guidot_profile_name();
+	}
+#endif
+	if (p_validate_profile && !profile_name.is_empty()) {
 		// Profile may not exist.
 		Ref<DirAccess> da = DirAccess::open(EditorPaths::get_singleton()->get_feature_profiles_dir());
 		ERR_FAIL_COND_MSG(da.is_null(), "Cannot open directory '" + EditorPaths::get_singleton()->get_feature_profiles_dir() + "'.");
-		ERR_FAIL_COND_MSG(!da->file_exists(p_profile_name + ".profile"), "Feature profile '" + p_profile_name + "' does not exist.");
+		ERR_FAIL_COND_MSG(!da->file_exists(profile_name + ".profile"), "Feature profile '" + profile_name + "' does not exist.");
 
 		// Change profile selection to emulate the UI interaction. Otherwise, the wrong profile would get activated.
 		// FIXME: Ideally, _update_selected_profile() should not rely on the user interface state to function properly.
 		for (int i = 0; i < profile_list->get_item_count(); i++) {
-			if (profile_list->get_item_metadata(i) == p_profile_name) {
+			if (profile_list->get_item_metadata(i) == profile_name) {
 				profile_list->select(i);
 				break;
 			}
@@ -917,14 +991,29 @@ void EditorFeatureProfileManager::set_current_profile(const String &p_profile_na
 	}
 
 	// Store in editor settings.
-	EditorSettings::get_singleton()->set("_default_feature_profile", p_profile_name);
+	EditorSettings::get_singleton()->set("_default_feature_profile", profile_name);
 	EditorSettings::get_singleton()->save();
 
-	current_profile = p_profile_name;
-	if (p_profile_name.is_empty()) {
+	current_profile = profile_name;
+	if (profile_name.is_empty()) {
 		current.unref();
-	} else {
+	} else if (edited.is_valid()) {
 		current = edited;
+	} else {
+		current.instantiate();
+		Error err = current->load_from_file(EditorPaths::get_singleton()->get_feature_profiles_dir().path_join(profile_name + ".profile"));
+		if (err != OK) {
+#ifdef GUIDOT_ENABLED
+			if (profile_name == EditorFeatureProfile::get_builtin_guidot_profile_name()) {
+				current = EditorFeatureProfile::create_builtin_guidot_profile();
+			} else
+#endif
+			{
+				ERR_PRINT("Error loading feature profile: " + profile_name);
+				current_profile = String();
+				current.unref();
+			}
+		}
 	}
 	_update_profile_list();
 	_emit_current_profile_changed();
@@ -1082,7 +1171,11 @@ EditorFeatureProfileManager::EditorFeatureProfileManager() {
 
 	set_title(TTR("Manage Editor Feature Profiles"));
 	set_flag(FLAG_MAXIMIZE_DISABLED, false);
+#ifdef GUIDOT_ENABLED
+	EDITOR_DEF("_default_feature_profile", EditorFeatureProfile::get_builtin_guidot_profile_name());
+#else
 	EDITOR_DEF("_default_feature_profile", "");
+#endif
 
 	update_timer = memnew(Timer);
 	update_timer->set_wait_time(1); //wait a second before updating editor
