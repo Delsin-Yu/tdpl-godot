@@ -83,6 +83,13 @@ public:
 	virtual void refcount_incremented() {}
 	virtual bool refcount_decremented() { return true; } //return true if it can die
 
+	// For garbage-collected script languages, whether this instance's script-side counterpart
+	// is still alive. Handing out a new reference to an object whose script side has already
+	// been collected loses whatever state lived there, so ResourceCache::get_ref() treats a
+	// dead one as a cache miss and lets the resource be loaded fresh (GH-83762).
+	// Languages without a garbage collector are always alive.
+	virtual bool is_script_side_alive() const { return true; }
+
 	virtual Ref<Script> get_script() const = 0;
 
 	virtual bool is_placeholder() const { return false; }

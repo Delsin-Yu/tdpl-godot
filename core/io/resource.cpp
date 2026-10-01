@@ -34,6 +34,7 @@
 #include "core/math/math_funcs.h"
 #include "core/math/random_pcg.h"
 #include "core/object/class_db.h"
+#include "core/object/script_instance.h"
 #include "core/os/os.h"
 #include "core/variant/container_type_validate.h" // IWYU pragma: keep.
 #include "scene/main/node.h" //only so casting works
@@ -856,11 +857,22 @@ Ref<Resource> ResourceCache::get_ref(const String &p_path) {
 		Resource **res = resources.getptr(p_path);
 
 		if (res) {
-			ref = Ref<Resource>(*res);
+			// Taking the reference is what revives the resource, and for a garbage-collected
+			// script language that is only safe while the script side is still alive. Once it
+			// has been collected, reviving hands back a resource whose exported values are
+			// gone, so report a miss and let the caller load a fresh copy from disk instead,
+			// which restores the authored values (GH-83762).
+			// Lock order: the cache lock is held while the script instance takes its own
+			// handle lock, so this check must stay cheap and must never run user code.
+			const ScriptInstance *si = (*res)->get_script_instance();
+			if (si == nullptr || si->is_script_side_alive()) {
+				ref = Ref<Resource>(*res);
+			}
 		}
 
 		if (res && ref.is_null()) {
-			// This resource is in the process of being deleted, ignore its existence
+			// This resource is in the process of being deleted, or its script side is gone.
+			// Either way, ignore its existence.
 			(*res)->path_cache = String();
 			resources.erase(p_path);
 			res = nullptr;

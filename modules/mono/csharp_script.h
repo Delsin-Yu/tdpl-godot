@@ -366,6 +366,7 @@ public:
 
 	void refcount_incremented() override;
 	bool refcount_decremented() override;
+	bool is_script_side_alive() const override;
 
 	const Variant get_rpc_config() const override;
 

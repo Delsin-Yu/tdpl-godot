@@ -1266,15 +1266,21 @@ GDExtensionBool CSharpLanguage::_instance_binding_reference_callback(void *p_tok
 
 	MonoGCHandleData &gchandle = script_binding.gchandle;
 
-	int refcount = rc_owner->get_reference_count();
-
 	if (!script_binding.inited) {
-		return refcount == 0;
+		return rc_owner->get_reference_count() == 0;
 	}
+
+	// Serialize the handle swaps below against the finalizer thread, which releases handles
+	// under this same mutex. Without it both threads can reach CustomGCHandle.Free on the
+	// same handle, and the swap can be handed an already released one, which surfaces on the
+	// managed side as "Handle is not initialized" out of SwapGCHandleForType (GH-112067).
+	MutexLock lock(get_singleton()->script_gchandle_release_mutex);
+
+	int refcount = rc_owner->get_reference_count();
 
 	if (p_reference) {
 		// Refcount incremented
-		if (refcount > 1 && gchandle.is_weak()) { // The managed side also holds a reference, hence 1 instead of 0
+		if (refcount > 1 && !gchandle.is_released() && gchandle.is_weak()) { // The managed side also holds a reference, hence 1 instead of 0
 			// The reference count was increased after the managed side was the only one referencing our owner.
 			// This means the owner is being referenced again by the unmanaged side,
 			// so the owner must hold the managed side alive again to avoid it from being GCed.
@@ -1785,8 +1791,16 @@ void CSharpInstance::mono_object_disposed(GCHandleIntPtr p_gchandle_to_free) {
 void CSharpInstance::mono_object_disposed_baseref(GCHandleIntPtr p_gchandle_to_free, bool p_is_finalizer, bool &r_delete_owner, bool &r_remove_script_instance) {
 #ifdef DEBUG_ENABLED
 	CRASH_COND(!base_ref_counted);
-	CRASH_COND(gchandle.is_released());
 #endif // DEBUG_ENABLED
+
+	// A released gchandle is a legitimate state here and is deliberately not asserted on
+	// (GH-83762). refcount_incremented() nulls the handle when the swap finds the managed
+	// side already collected, and the finalizer for that very object is what brings us here.
+	// Everything below is written for it: the unreference does not touch the handle,
+	// release_script_gchandle_thread_safe() only frees a handle that is still held and
+	// matches, and _internal_new_managed() rebuilds the managed side when the native object
+	// outlived its wrapper. Asserting instead turns a recoverable state into an abort, and
+	// compiling the assert out (release builds) is what silently yields default values.
 
 	// Must make sure event signals are not left dangling
 	disconnect_event_signals();
@@ -1852,7 +1866,12 @@ void CSharpInstance::refcount_incremented() {
 
 	RefCounted *rc_owner = Object::cast_to<RefCounted>(owner);
 
-	if (rc_owner->get_reference_count() > 1 && gchandle.is_weak()) { // The managed side also holds a reference, hence 1 instead of 0
+	// Serialize the swap against the finalizer thread; see the comment in
+	// _instance_binding_reference_callback(). This mutex is recursive and the managed calls
+	// below are already made under it elsewhere (release_script_gchandle_thread_safe).
+	MutexLock lock(CSharpLanguage::get_singleton()->script_gchandle_release_mutex);
+
+	if (rc_owner->get_reference_count() > 1 && !gchandle.is_released() && gchandle.is_weak()) { // The managed side also holds a reference, hence 1 instead of 0
 		// The reference count was increased after the managed side was the only one referencing our owner.
 		// This means the owner is being referenced again by the unmanaged side,
 		// so the owner must hold the managed side alive again to avoid it from being GCed.
@@ -1868,7 +1887,11 @@ void CSharpInstance::refcount_incremented() {
 				old_gchandle, &new_gchandle, create_weak);
 
 		if (!target_alive) {
-			return; // Called after the managed side was collected, so nothing to do here
+			// The managed side was collected before we could re-reference it, and the swap
+			// freed the old handle. Leaving the instance with a released handle is safe: the
+			// finalizer already queued for that collected object reaches
+			// mono_object_disposed_baseref(), which rebuilds the managed side.
+			return;
 		}
 
 		gchandle = MonoGCHandleData(new_gchandle, gdmono::GCHandleType::STRONG_HANDLE);
@@ -1883,9 +1906,12 @@ bool CSharpInstance::refcount_decremented() {
 
 	RefCounted *rc_owner = Object::cast_to<RefCounted>(owner);
 
+	// Serialize the swap against the finalizer thread; see refcount_incremented().
+	MutexLock lock(CSharpLanguage::get_singleton()->script_gchandle_release_mutex);
+
 	int refcount = rc_owner->get_reference_count();
 
-	if (refcount == 1 && !gchandle.is_weak()) { // The managed side also holds a reference, hence 1 instead of 0
+	if (refcount == 1 && !gchandle.is_released() && !gchandle.is_weak()) { // The managed side also holds a reference, hence 1 instead of 0
 		// If owner owner is no longer referenced by the unmanaged side,
 		// the managed instance takes responsibility of deleting the owner when GCed.
 
@@ -1911,6 +1937,28 @@ bool CSharpInstance::refcount_decremented() {
 	ref_dying = (refcount == 0);
 
 	return ref_dying;
+}
+
+bool CSharpInstance::is_script_side_alive() const {
+	if (!GDMonoCache::godot_api_cache_updated) {
+		// The runtime is not available, so nothing can have been collected behind our back.
+		// Report alive rather than perturbing the resource cache on startup or shutdown.
+		return true;
+	}
+
+	MutexLock lock(CSharpLanguage::get_singleton()->script_gchandle_release_mutex);
+
+	if (gchandle.is_released()) {
+		return false;
+	}
+
+	if (!gchandle.is_weak()) {
+		// A strong handle keeps its target alive by definition, so skip the managed call.
+		return true;
+	}
+
+	// Only reads GCHandle.Target; it never resurrects it.
+	return GDMonoCache::managed_callbacks.GCHandleBridge_CheckGCHandle(gchandle.get_intptr());
 }
 
 const Variant CSharpInstance::get_rpc_config() const {

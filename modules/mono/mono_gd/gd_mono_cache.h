@@ -105,6 +105,7 @@ struct ManagedCallbacks {
 	using FuncCSharpInstanceBridge_DeserializeState = void(GD_CLR_STDCALL *)(GCHandleIntPtr, const Dictionary *, const Dictionary *);
 	using FuncCSharpInstanceBridge_ValidateExports = void(GD_CLR_STDCALL *)(GCHandleIntPtr);
 	using FuncGCHandleBridge_FreeGCHandle = void(GD_CLR_STDCALL *)(GCHandleIntPtr);
+	using FuncGCHandleBridge_CheckGCHandle = bool(GD_CLR_STDCALL *)(GCHandleIntPtr);
 	using FuncGCHandleBridge_GCHandleIsTargetCollectible = bool(GD_CLR_STDCALL *)(GCHandleIntPtr);
 	using FuncDebuggingUtils_GetCurrentStackInfo = void(GD_CLR_STDCALL *)(Vector<ScriptLanguage::StackInfo> *);
 	using FuncDisposablesTracker_OnGodotShuttingDown = void(GD_CLR_STDCALL *)();
@@ -144,6 +145,7 @@ struct ManagedCallbacks {
 	FuncCSharpInstanceBridge_DeserializeState CSharpInstanceBridge_DeserializeState;
 	FuncCSharpInstanceBridge_ValidateExports CSharpInstanceBridge_ValidateExports;
 	FuncGCHandleBridge_FreeGCHandle GCHandleBridge_FreeGCHandle;
+	FuncGCHandleBridge_CheckGCHandle GCHandleBridge_CheckGCHandle;
 	FuncGCHandleBridge_GCHandleIsTargetCollectible GCHandleBridge_GCHandleIsTargetCollectible;
 	FuncDebuggingUtils_GetCurrentStackInfo DebuggingUtils_GetCurrentStackInfo;
 	FuncDisposablesTracker_OnGodotShuttingDown DisposablesTracker_OnGodotShuttingDown;

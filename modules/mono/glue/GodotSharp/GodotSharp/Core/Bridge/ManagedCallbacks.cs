@@ -42,6 +42,7 @@ namespace Godot.Bridge
         public delegate* unmanaged<IntPtr, godot_dictionary*, godot_dictionary*, void> CSharpInstanceBridge_DeserializeState;
         public delegate* unmanaged<IntPtr, void> CSharpInstanceBridge_ValidateExports;
         public delegate* unmanaged<IntPtr, void> GCHandleBridge_FreeGCHandle;
+        public delegate* unmanaged<IntPtr, godot_bool> GCHandleBridge_CheckGCHandle;
         public delegate* unmanaged<IntPtr, godot_bool> GCHandleBridge_GCHandleIsTargetCollectible;
         public delegate* unmanaged<void*, void> DebuggingUtils_GetCurrentStackInfo;
         public delegate* unmanaged<void> DisposablesTracker_OnGodotShuttingDown;
@@ -87,6 +88,7 @@ namespace Godot.Bridge
                 CSharpInstanceBridge_DeserializeState = &CSharpInstanceBridge.DeserializeState,
                 CSharpInstanceBridge_ValidateExports = &CSharpInstanceBridge.ValidateExports,
                 GCHandleBridge_FreeGCHandle = &GCHandleBridge.FreeGCHandle,
+                GCHandleBridge_CheckGCHandle = &GCHandleBridge.CheckGCHandle,
                 GCHandleBridge_GCHandleIsTargetCollectible = &GCHandleBridge.GCHandleIsTargetCollectible,
                 DebuggingUtils_GetCurrentStackInfo = &DebuggingUtils.GetCurrentStackInfo,
                 DisposablesTracker_OnGodotShuttingDown = &DisposablesTracker.OnGodotShuttingDown,
