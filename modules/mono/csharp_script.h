@@ -158,6 +158,14 @@ private:
 	bool reload_invalidated = false;
 
 	/**
+	 * Strings cached for the profiler, used to report zones for script calls.
+	 * They mirror the script path and `type_info.class_name`, which are stored
+	 * as `String` and would need to be converted on every call otherwise.
+	 */
+	StringName profiler_source_file;
+	StringName profiler_call_function;
+
+	/**
 	 * Base script that this script derives from, or null if it derives from a
 	 * native Godot class.
 	 */

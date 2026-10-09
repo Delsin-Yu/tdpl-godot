@@ -65,6 +65,9 @@ if env["profiler"]:
 
         env_tracy = env.Clone()
         env_tracy.Append(CPPDEFINES=["TRACY_ENABLE"])
+
+        env.Append(CPPDEFINES=["TRACY_EXPORTS", "TRACY_FIBERS"])
+        env_tracy.Append(CPPDEFINES=["TRACY_EXPORTS", "TRACY_FIBERS"])
         if env["profiler_sample_callstack"]:
             if env["platform"] not in ("windows", "linuxbsd", "android"):
                 # Reference the feature matrix in the tracy documentation.

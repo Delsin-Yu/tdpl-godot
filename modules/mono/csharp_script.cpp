@@ -61,6 +61,7 @@
 #include "core/os/mutex.h"
 #include "core/os/os.h"
 #include "core/os/thread.h"
+#include "core/profiling/profiling.h"
 #include "servers/text/text_server.h"
 
 #ifdef TOOLS_ENABLED
@@ -1764,6 +1765,8 @@ int CSharpInstance::get_method_argument_count(const StringName &p_method, bool *
 Variant CSharpInstance::_callp(const StringName &p_method, const Variant **p_args, int p_argcount, Callable::CallError &r_error) const {
 	ERR_FAIL_COND_V(script.is_null(), Variant());
 
+	GodotProfileZoneScript(script.ptr(), script->profiler_source_file, script->profiler_call_function, p_method, 0);
+
 	const CSharpScript::MethodKey method_key{ p_method, p_argcount };
 
 	const godotsharp::MethodTrampoline *trampoline = script->method_trampolines.getptr(method_key);
@@ -2456,6 +2459,9 @@ void CSharpScript::update_script_class_info(Ref<CSharpScript> p_script) {
 
 	p_script->type_info = type_info;
 
+	p_script->profiler_source_file = StringName(p_script->get_path());
+	p_script->profiler_call_function = StringName(type_info.class_name);
+
 	p_script->rpc_config.clear();
 	p_script->rpc_config = rpc_functions_dict;
 
@@ -2781,6 +2787,8 @@ bool CSharpScript::_callp_static(const CSharpScript *p_script, const StringName 
 	if (!p_script->valid) {
 		return false;
 	}
+
+	GodotProfileZoneScript(p_script, p_script->profiler_source_file, p_script->profiler_call_function, p_method, 0);
 
 	const MethodKey method_key{ p_method, p_argcount };
 
